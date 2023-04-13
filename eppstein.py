@@ -19,39 +19,93 @@ dijkstra_predecessor_and_distance:
 
 import networkx as nx
 
-# get_sidetrack_edges routines will run infinite if G has cycles... -> solution with dist[] dictionary and counter?
-# DFS
-def get_sidetrack_edges_DFS(G, pred, src):
-    v = src
-    temp_dict = {}
+
+
+# # get_sidetrack_edges routines will run infinite if G has cycles... -> solution with dist[] dictionary and counter? or seen unseen counter?
+# # DFS
+# def get_sidetrack_edges_DFS(G, pred, src):
+#     v = src
+#     temp_dict = {}
+#     # iterate over all nodes on the shortest path from src to dst
+#     while v != None:
+#         # iterate over all out edges of v
+#         for nbr in G.adj[v]:
+#             stc = G.adj[v][nbr]['sidetrackCost']
+#             if stc != 0:
+#                 temp_dict[(v, nbr, stc)] = get_sidetrack_edges_DFS(G, pred, nbr)
+#         v = pred.get(v)
+
+#     return temp_dict
+
+# # BFS
+# def get_sidetrack_edges_BFS(G, pred, src):
+#     v = src
+#     temp_dict = {}
+#     # iterate over all nodes on the shortest path from src to dst
+#     while v != None:
+#         # iterate over all out edges of v
+#         for nbr in G.adj[v]:
+#             stc = G.adj[v][nbr]['sidetrackCost']
+#             if stc != 0:
+#                 temp_dict[(v, nbr, stc)] = None
+#         v = pred.get(v)
+
+#     for x in temp_dict:
+#         temp_dict[x] = get_sidetrack_edges_BFS(G, pred, nbr)
+
+#     return temp_dict
+
+
+# get the sidetrack edges with tails on the shortest path from u to dst
+# G: the original graph
+# pred: next node on the shortest path tree from u to dst
+# u: source node
+# STree: The Sidetrack Sequence path tree to be constructed
+# prevNode: the previous node in STree to which the new found sidetrack edges should be appended
+def get_sidetrack_edges_DFS(G, pred, u, STree, prevNode):
+    v = u
     # iterate over all nodes on the shortest path from src to dst
     while v != None:
-        # iterate over all out edges of v
         for nbr in G.adj[v]:
             stc = G.adj[v][nbr]['sidetrackCost']
             if stc != 0:
-                temp_dict[(v, nbr, stc)] = get_sidetrack_edges_DFS(G, pred, nbr)
+                STree.add_edge(prevNode, (v, nbr, stc))
+                STree = get_sidetrack_edges_DFS(G, pred, nbr, STree, (v, nbr, stc))
         v = pred.get(v)
+    
+    return STree
 
-    return temp_dict
-
-# BFS
-def get_sidetrack_edges_BFS(G, pred, src):
-    v = src
-    temp_dict = {}
+# get the sidetrack edges with tails on the shortest path from u to dst
+# G: the original graph
+# pred: next node on the shortest path tree from u to dst
+# u: source node
+# STree: The Sidetrack Sequence path tree to be constructed
+# prevNode: the previous node in STree to which the new found sidetrack edges should be appended
+def get_sidetrack_edges_BFS(G, pred, u, STree, prevNode):
+    v = u
     # iterate over all nodes on the shortest path from src to dst
     while v != None:
-        # iterate over all out edges of v
         for nbr in G.adj[v]:
             stc = G.adj[v][nbr]['sidetrackCost']
             if stc != 0:
-                temp_dict[(v, nbr, stc)] = None
+                STree.add_edge(prevNode, (v, nbr, stc))
         v = pred.get(v)
+    
+    for child in STree.adj[prevNode]:
+        STree = get_sidetrack_edges_BFS(G, pred, child[1], STree, child)
 
-    for x in temp_dict:
-        temp_dict[x] = get_sidetrack_edges_BFS(G, pred, nbr)
+    return STree
 
-    return temp_dict
+
+def sidetrackEdge_path_tree(G, pred, src):
+    # create a tree of sequences of sidetrack edges, denoting paths in G
+    STree = nx.DiGraph()
+
+    # add the empty sequence as root
+    STree.add_node(())
+
+    return get_sidetrack_edges_DFS(G, pred, src, STree, ())
+
 
 # G:    a networkx DiGraph
 # src:  the source node
@@ -88,4 +142,6 @@ def shortest_paths(G, src, dst, k):
     # where the parent of any path p is prefpath(p)
     # This tree will be heap-ordered by Lemma 3: l(p) >= l(prefpath(p))
     # (the empty sequence will be the root)
-    pathTree = get_sidetrack_edges_DFS(G, pred, src)
+    pathTree = sidetrackEdge_path_tree(G, pred, src)
+
+    
