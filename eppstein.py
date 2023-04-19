@@ -63,9 +63,10 @@ import networkx as nx
 # STree: The Sidetrack Sequence path tree to be constructed
 # prevNode: the previous node in STree to which the new found sidetrack edges should be appended
 def get_sidetrack_edges_DFS(G, pred, u, STree, prevNode):
-    v = u
+    v = [u]
     # iterate over all nodes on the shortest path from src to dst
-    while v != None:
+    while v != []:
+        v = v[0]
         for nbr in G.adj[v]:
             stc = G.adj[v][nbr]['sidetrackCost']
             if stc != 0:
@@ -82,9 +83,10 @@ def get_sidetrack_edges_DFS(G, pred, u, STree, prevNode):
 # STree: The Sidetrack Sequence path tree to be constructed
 # prevNode: the previous node in STree to which the new found sidetrack edges should be appended
 def get_sidetrack_edges_BFS(G, pred, u, STree, prevNode):
-    v = u
+    v = [u]
     # iterate over all nodes on the shortest path from src to dst
-    while v != None:
+    while v != []:
+        v = v[0]
         for nbr in G.adj[v]:
             stc = G.adj[v][nbr]['sidetrackCost']
             if stc != 0:
@@ -107,6 +109,21 @@ def sidetrackEdge_path_tree(G, pred, src):
     return get_sidetrack_edges_DFS(G, pred, src, STree, ())
 
 
+def calc_sidetrack_cost(G, dist):
+    # iterate over all nodes in adjecency list form ( should take O(m) )
+    for u, nbrs in G.adj.items():
+        # remove nodes from which dst can't be reached
+        if dist.get(u) == None:
+            G.remove_node(u)
+        
+        # Add sidetrack costs as attribute of edges to the edges in G
+        # [and connections from u to head(sidetrack-edge) for each side-track edge on the shortest path from u to t]?
+        # delta(e) = l(e) + dist(head(e), t) - dist(tail(e),t)
+        else:
+            for nbr, eattr in nbrs.items():
+                G[u][nbr]['sidetrackCost'] = eattr['weight'] + dist[nbr] - dist[u]
+    return G
+
 # G:    a networkx DiGraph
 # src:  the source node
 # dst:  the destination node
@@ -125,18 +142,7 @@ def shortest_paths(G, src, dst, k):
     if dist.get(src) == None:
         return []
 
-    # iterate over all nodes in adjecency list form ( should take O(m) )
-    for u, nbrs in G.adj.items():
-        # remove nodes from which dst can't be reached
-        if dist.get(u) == None:
-            G.remove_node(u)
-        
-        # Add sidetrack costs as attribute of edges to the edges in G
-        # [and connections from u to head(sidetrack-edge) for each side-track edge on the shortest path from u to t]?
-        # delta(e) = l(e) + dist(head(e), t) - dist(tail(e),t)
-        else:
-            for nbr, eattr in nbrs.items():
-                G[u][nbr]['sidetrackCost'] = eattr['weight'] + dist[nbr] - dist[u]
+    G = calc_sidetrack_cost(G, dist)
     
     # Create a path tree with sidetrack(p) sequences S
     # where the parent of any path p is prefpath(p)
