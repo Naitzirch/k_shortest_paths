@@ -65,6 +65,8 @@ class STCedge:
         self.strc = attr['sidetrackCost']
     def __lt__(self, other):
         return self.strc < other.strc
+    def __str__(self):
+        return f"{self.strc}"
 
 # Heap of the out edges of v
 class Hout:
@@ -89,7 +91,10 @@ class Hout:
                 self.root = e
             else:
                 heapq.heappush(self.heap, e)
-
+    def __lt__(self, other):
+        return self.root < other.root
+    def __str__(self):
+        return f"{self.root}, {self.heap}"
 
 
 # get the sidetrack edges with tails on the shortest path from u to dst
@@ -163,27 +168,28 @@ def calc_sidetrack_cost(G, dist):
                 G[u][nbr]['sidetrackCost'] = eattr['weight'] + dist[nbr] - dist[u]
     return G
 
-# DFS to create H_T heaps for each vertex v
-# consisting of the roots of each Hout heap on the shortest path from v to t
-def calc_H_T_next(R, pred, prevNode):
+# DFS to create H_G heaps for each vertex v
+# ordered by the value of the roots of each Hout heap on the shortest path from v to t
+def calc_H_G_next(R, pred, prevNode):
     for v in R.adj[prevNode]:
         if prevNode in pred[v]:
-            Hout_v_root = R.nodes[v]['Hout'].root
-            h = R.nodes[v]['H_T'] = copy.copy(R.nodes[prevNode]['H_T'])
-            if Hout_v_root != None:
-                heapq.heappush(h, Hout_v_root)
-            calc_H_T_next(R, pred, v)
+            Hout_v = R.nodes[v]['Hout']
+            h = R.nodes[v]['H_G'] = copy.copy(R.nodes[prevNode]['H_G'])
+            if Hout_v.root != None:
+                heapq.heappush(h, Hout_v)
+            calc_H_G_next(R, pred, v)
                 
-
-def calc_H_T(G, pred, dst):
+# For each vertex v in G, creates a heap H_G of all Hout heaps on the path from v to t
+# ordered by value of the roots of each Hout heap
+def calc_H_G(G, pred, dst):
     R = G.reverse(copy=True)
-    h = R.nodes[dst]['H_T'] = []
-    Hout_dst_root = R.nodes[dst]['Hout'].root
+    h = R.nodes[dst]['H_G'] = []
+    Hout_dst = R.nodes[dst]['Hout']
     
-    if Hout_dst_root != None:
-        heapq.heappush(h, Hout_dst_root)
+    if Hout_dst.root != None:
+        heapq.heappush(h, Hout_dst)
     
-    calc_H_T_next(R, pred, dst)
+    calc_H_G_next(R, pred, dst)
 
     return R.reverse(copy=True)
 
@@ -219,7 +225,7 @@ def shortest_paths(G, src, dst, k):
     for v in G.nodes():
         G.nodes[v]['Hout'] = Hout(G,v)
 
-    # Calculate H_T(v) for every vertex, a balanced heap of the roots of Hout on the path from v to t
-    G = calc_H_T(G, pred, dst)
+    # Calculate H_G(v) for every vertex, a balanced heap of the roots of Hout on the path from v to t
+    # where every root also points to the rest its original Hout heap
+    G = calc_H_G(G, pred, dst)
 
-    

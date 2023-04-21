@@ -73,5 +73,26 @@ class TestEpp(unittest.TestCase):
         self.assertEqual(2, val_root_stc)
         self.assertEqual(6, val_heap_top)
 
+    def test_calc_H_G(self):
+        G = self.Gsidetrack
+        for v in G.nodes():
+            G.nodes[v]['Hout'] = eppstein.Hout(G,v)
+
+        val = eppstein.calc_H_G(G, self.Gpred, 't')
+        v5 = val.nodes[5]['H_G']
+        self.assertEqual(3,v5[0].root.strc)
+        self.assertEqual(8,v5[1].root.strc)
+        self.assertEqual([],v5[0].heap)
+        self.assertEqual([],v5[1].heap)
+
+        vS = val.nodes['s']['H_G']
+        self.assertEqual(2,vS[0].root.strc)
+        self.assertEqual(8,vS[1].root.strc)
+        self.assertEqual(6,vS[0].heap[0].strc)
+        self.assertEqual(1, len(vS[0].heap))
+        self.assertEqual([],vS[1].heap)
+
+
+
 if __name__ == '__main__':
     unittest.main()
