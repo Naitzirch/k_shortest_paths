@@ -1,4 +1,5 @@
 import unittest
+import heapq
 import networkx as nx
 import eppstein
 
@@ -64,6 +65,13 @@ class TestEpp(unittest.TestCase):
         val = eppstein.sidetrackEdge_path_tree(self.Gsidetrack, self.Gpred, 's')
         ref = self.GTree
         self.assertEqual(ref.adj,val.adj)
+    
+    def test_Hout(self):
+        val = eppstein.Hout(self.Gsidetrack, 's')
+        val_root_stc = val.root.strc
+        val_heap_top = heapq.heappop(val.heap).strc
+        self.assertEqual(2, val_root_stc)
+        self.assertEqual(6, val_heap_top)
 
 if __name__ == '__main__':
     unittest.main()

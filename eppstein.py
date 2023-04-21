@@ -16,7 +16,8 @@ dijkstra_predecessor_and_distance:
 '''
 
 
-
+import math
+import heapq
 import networkx as nx
 
 
@@ -54,6 +55,40 @@ import networkx as nx
 #         temp_dict[x] = get_sidetrack_edges_BFS(G, pred, nbr)
 
 #     return temp_dict
+
+class STCedge:
+    def __init__(self, tail, head, attr):
+        self.tail = tail
+        self.head = head
+        self.attr = attr
+        self.strc = attr['sidetrackCost']
+    def __lt__(self, other):
+        return self.strc < other.strc
+
+# Heap of the out edges of v
+class Hout:
+    def __init__(self, G, v):
+        self.smallest = math.inf
+        self.root = None            # outgoing edge with smallest stc value
+        self.heap = []
+        for u in G.adj[v]:
+            e = STCedge(v, u, G.adj[v][u])
+
+            # Hout consist only of non-0 stc edges
+            if e.strc == 0:
+                continue
+            
+            if e.strc < self.smallest:
+                # add current root to internal heap unless root is None
+                if self.root != None:
+                    heapq.heappush(self.heap, self.root)
+                
+                # update root
+                self.smallest = e.strc
+                self.root = e
+            else:
+                heapq.heappush(self.heap, e)
+            
 
 
 # get the sidetrack edges with tails on the shortest path from u to dst
