@@ -17,6 +17,7 @@ dijkstra_predecessor_and_distance:
 
 
 import math
+import copy
 import heapq
 import networkx as nx
 
@@ -77,7 +78,7 @@ class Hout:
             # Hout consist only of non-0 stc edges
             if e.strc == 0:
                 continue
-            
+
             if e.strc < self.smallest:
                 # add current root to internal heap unless root is None
                 if self.root != None:
@@ -88,7 +89,7 @@ class Hout:
                 self.root = e
             else:
                 heapq.heappush(self.heap, e)
-            
+
 
 
 # get the sidetrack edges with tails on the shortest path from u to dst
@@ -133,7 +134,10 @@ def get_sidetrack_edges_BFS(G, pred, u, STree, prevNode):
 
     return STree
 
-
+# nodes in the sidetrack edge path tree will be of the form
+# (tail, head, sidetrackCost)
+# the path from root to node defines the sequence of sidetrack edges
+# i.e. each node is lastsidetrack(p)
 def sidetrackEdge_path_tree(G, pred, src):
     # create a tree of sequences of sidetrack edges, denoting paths in G
     STree = nx.DiGraph()
@@ -159,6 +163,31 @@ def calc_sidetrack_cost(G, dist):
                 G[u][nbr]['sidetrackCost'] = eattr['weight'] + dist[nbr] - dist[u]
     return G
 
+# DFS to create H_T heaps for each vertex v
+# consisting of the roots of each Hout heap on the shortest path from v to t
+def calc_H_T_next(R, pred, prevNode):
+    for v in R.adj[prevNode]:
+        if prevNode in pred[v]:
+            Hout_v_root = R.nodes[v]['Hout'].root
+            h = R.nodes[v]['H_T'] = copy.copy(R.nodes[prevNode]['H_T'])
+            if Hout_v_root != None:
+                heapq.heappush(h, Hout_v_root)
+            calc_H_T_next(R, pred, v)
+                
+
+def calc_H_T(G, pred, dst):
+    R = G.reverse(copy=True)
+    h = R.nodes[dst]['H_T'] = []
+    Hout_dst_root = R.nodes[dst]['Hout'].root
+    
+    if Hout_dst_root != None:
+        heapq.heappush(h, Hout_dst_root)
+    
+    calc_H_T_next(R, pred, dst)
+
+    return R.reverse(copy=True)
+
+
 # G:    a networkx DiGraph
 # src:  the source node
 # dst:  the destination node
@@ -177,6 +206,7 @@ def shortest_paths(G, src, dst, k):
     if dist.get(src) == None:
         return []
 
+    # Calculate sidetrack costs for every edge and add them as attribute to the edge
     G = calc_sidetrack_cost(G, dist)
     
     # Create a path tree with sidetrack(p) sequences S
@@ -184,5 +214,12 @@ def shortest_paths(G, src, dst, k):
     # This tree will be heap-ordered by Lemma 3: l(p) >= l(prefpath(p))
     # (the empty sequence will be the root)
     pathTree = sidetrackEdge_path_tree(G, pred, src)
+
+    # Calculate Hout(v) for every vertex and add the resulting heap as attribute to v
+    for v in G.nodes():
+        G.nodes[v]['Hout'] = Hout(G,v)
+
+    # Calculate H_T(v) for every vertex, a balanced heap of the roots of Hout on the path from v to t
+    G = calc_H_T(G, pred, dst)
 
     
