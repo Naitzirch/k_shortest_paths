@@ -201,29 +201,39 @@ def calc_H_G(G, pred, dst):
     return R.reverse(copy=True)
 
 # DON'T FORGET INDEX OUT OF RANGE ERRORS
-def Hout_DFS(P, h, i):
+def Hout_DFS(P, h, i, H_G_dict):
     P.add_edge(h[i], h[2*i+1], weight=(h[2*i+1].strc - h[i].strc) ) # For edge (u, v) in D(G), add as edge weight: d(v) - d(u)
-    Hout_DFS(P, h, i)
+    Hout_DFS(P, h, i, H_G_dict)
     P.add_edge(h[i], h[2*i+2], weight=(h[2*i+2].strc - h[i].strc) )
-    Hout_DFS(P, h, i)
+    Hout_DFS(P, h, i, H_G_dict)
 
-def HoutHeap_DFS(P, h, i):
+    # Add an edge from p=h[i] (that corresponds to (u, w)) to h(w) (aka h(p.head)) with weight d(h(p.head))
+    # (= edge from p to H_G_dict[p][0].root)
+    h_w = H_G_dict[h[i]][0].root
+    P.add_edge(h[i], h_w, weight=h_w.strc)
+
+def HoutHeap_DFS(P, h, i, H_G_dict):
     # Add the two edges leading to other Hout heaps
     p = h[i].root
 
     # Left Hout child
     c1 = h[2*i+1].root
     P.add_edge(p, c1, weight=(c1.strc - p.strc) ) # For edge (u, v) in D(G), add as edge weight: d(v) - d(u)
-    HoutHeap_DFS(P, h, 2*i+1)
+    HoutHeap_DFS(P, h, 2*i+1, H_G_dict)
 
     # Right Hout child
     c2 = h[2*i+2].root
     P.add_edge(p, c2, weight=(c2.strc - p.strc) )
-    HoutHeap_DFS(P, h, 2*i+2)
+    HoutHeap_DFS(P, h, 2*i+2, H_G_dict)
 
     # Add its own (STCedge) heap (inner child)
     P.add_edge(h[i].root, h[i].heap[0])
-    Hout_DFS(P, h[i], 0)
+    Hout_DFS(P, h[i].heap, 0, H_G_dict)
+
+    # Add an edge from p (that corresponds to (u, w)) to h(w) (aka h(p.head)) with weight d(h(p.head))
+    # (= edge from p to H_G_dict[p][0].root)
+    h_w = H_G_dict[p][0].root
+    P.add_edge(p, h_w, weight=h_w.strc)
 
 # Transform all the heaps into nodes in 1 digraph
 def prepare_and_augmentP(P, H_G_dict, src):
@@ -238,7 +248,7 @@ def prepare_and_augmentP(P, H_G_dict, src):
         H_G = H_G_dict[l]
         # Traverse the Hout heap, add edges from the root elements to the lower roots
         if H_G != []:
-            HoutHeap_DFS(P, H_G, 0)
+            HoutHeap_DFS(P, H_G, 0, H_G_dict)
 
 def augmentP(P, src):
     empty_seq = STCedge(src, src, {'weight': 0, 'sidetrackCost': 0})
