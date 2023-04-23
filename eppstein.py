@@ -67,6 +67,12 @@ class STCedge:
         return self.strc < other.strc
     def __str__(self):
         return f"{self.strc}"
+    def __hash__(self):
+        return hash((self.tail, self.head, self.attr['weight'], self.strc))
+    def __eq__(self, other) : 
+        return self.__dict__ == other.__dict__
+    def __ne__(self, other):
+        return not(self.__dict__ == other.__dict__)
 
 # Heap of the out edges of v
 class Hout:
@@ -109,10 +115,10 @@ def get_sidetrack_edges_DFS(G, pred, u, STree, prevNode):
     while v != []:
         v = v[0]
         for nbr in G.adj[v]:
-            stc = G.adj[v][nbr]['sidetrackCost']
-            if stc != 0:
-                STree.add_edge(prevNode, (v, nbr, stc))
-                STree = get_sidetrack_edges_DFS(G, pred, nbr, STree, (v, nbr, stc))
+            e = STCedge(v, nbr, G.adj[v][nbr])
+            if e.strc != 0:
+                STree.add_edge(prevNode, e)
+                STree = get_sidetrack_edges_DFS(G, pred, nbr, STree, e)
         v = pred.get(v)
     
     return STree
@@ -143,14 +149,15 @@ def get_sidetrack_edges_BFS(G, pred, u, STree, prevNode):
 # (tail, head, sidetrackCost)
 # the path from root to node defines the sequence of sidetrack edges
 # i.e. each node is lastsidetrack(p)
-def sidetrackEdge_path_tree(G, pred, src, dst):
+def sidetrackEdge_path_tree(G, pred, src):
     # create a tree of sequences of sidetrack edges, denoting paths in G
     STree = nx.DiGraph()
 
     # add the empty sequence as root
-    STree.add_node((None, dst, 0))
+    root = STCedge(None, src, {'weight': 0, 'sidetrackCost': 0})
+    STree.add_node(root)
 
-    return get_sidetrack_edges_DFS(G, pred, src, STree, ())
+    return get_sidetrack_edges_DFS(G, pred, src, STree, root)
 
 
 def calc_sidetrack_cost(G, dist):
@@ -195,33 +202,47 @@ def calc_H_G(G, pred, dst):
 
 # DON'T FORGET INDEX OUT OF RANGE ERRORS
 def Hout_DFS(P, h, i):
-    P.add_edge(h[i], h[2*i+1])
+    P.add_edge(h[i], h[2*i+1], weight=(h[2*i+1].strc - h[i].strc) ) # For edge (u, v) in D(G), add as edge weight: d(v) - d(u)
     Hout_DFS(P, h, i)
-    P.add_edge(h[i], h[2*i+2])
+    P.add_edge(h[i], h[2*i+2], weight=(h[2*i+2].strc - h[i].strc) )
     Hout_DFS(P, h, i)
 
 def HoutHeap_DFS(P, h, i):
     # Add the two edges leading to other Hout heaps
-    P.add_edge(h[i].root, h[2*i+1].root)
+    p = h[i].root
+
+    # Left Hout child
+    c1 = h[2*i+1].root
+    P.add_edge(p, c1, weight=(c1.strc - p.strc) ) # For edge (u, v) in D(G), add as edge weight: d(v) - d(u)
     HoutHeap_DFS(P, h, 2*i+1)
-    P.add_edge(h[i].root, h[2*i+2].root)
+
+    # Right Hout child
+    c2 = h[2*i+2].root
+    P.add_edge(p, c2, weight=(c2.strc - p.strc) )
     HoutHeap_DFS(P, h, 2*i+2)
 
-    # Add its own heap
+    # Add its own (STCedge) heap (inner child)
     P.add_edge(h[i].root, h[i].heap[0])
     Hout_DFS(P, h[i], 0)
 
 # Transform all the heaps into nodes in 1 digraph
-def prepareP(P, H_G_list):
-    # iterate over H_G
-    for HoutHeap in H_G_list:
-        # HoutHeap = heap of Hout objects
-        # Traverse the Hout heap, add edges from the root elements to the lower roots
-        if HoutHeap != []:
-            HoutHeap_DFS(P, HoutHeap, 0)
+def prepare_and_augmentP(P, H_G_dict, src):
 
-def augmentP(P):
-    pass
+    # augmentation: Add a root node
+    empty_seq = STCedge(None, src, {'weight': 0, 'sidetrackCost': 0})
+    P.add_edge(empty_seq, H_G_dict[empty_seq].root)
+
+    # iterate over H_G
+    for l in H_G_dict: # last sidetrack edge in sequence for path p
+        # H_G = heap of Hout objects
+        H_G = H_G_dict[l]
+        # Traverse the Hout heap, add edges from the root elements to the lower roots
+        if H_G != []:
+            HoutHeap_DFS(P, H_G, 0)
+
+def augmentP(P, src):
+    empty_seq = STCedge(src, src, {'weight': 0, 'sidetrackCost': 0})
+    P.add_edge()
 
 # G:    a networkx DiGraph
 # src:  the source node
@@ -260,11 +281,9 @@ def shortest_paths(G, src, dst, k):
 
     # Retrieve H_G(head(lastsidetrack(p))) for each node p in pathTree
     # such that we can build P(G)
-    H_G_list = []
-    for p in pathTree.nodes: # p is of the form (v, u, stc)
-        H_G_list.append(G.nodes[p[1]]['H_G'])
+    H_G_dict = {}
+    for p in pathTree.nodes: # p is of the form STCedge()
+        H_G_dict[p] = G.nodes[p.head]['H_G']
 
     P = nx.DiGraph()
-    prepareP(P, H_G_list) # results in a graph of STCedge elements
-
-    augmentP(P)
+    prepare_and_augmentP(P, H_G_dict, src) # results in a graph of STCedge elements
