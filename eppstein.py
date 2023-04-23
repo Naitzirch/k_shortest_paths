@@ -143,12 +143,12 @@ def get_sidetrack_edges_BFS(G, pred, u, STree, prevNode):
 # (tail, head, sidetrackCost)
 # the path from root to node defines the sequence of sidetrack edges
 # i.e. each node is lastsidetrack(p)
-def sidetrackEdge_path_tree(G, pred, src):
+def sidetrackEdge_path_tree(G, pred, src, dst):
     # create a tree of sequences of sidetrack edges, denoting paths in G
     STree = nx.DiGraph()
 
     # add the empty sequence as root
-    STree.add_node(())
+    STree.add_node((None, dst, 0))
 
     return get_sidetrack_edges_DFS(G, pred, src, STree, ())
 
@@ -193,6 +193,35 @@ def calc_H_G(G, pred, dst):
 
     return R.reverse(copy=True)
 
+# DON'T FORGET INDEX OUT OF RANGE ERRORS
+def Hout_DFS(P, h, i):
+    P.add_edge(h[i], h[2*i+1])
+    Hout_DFS(P, h, i)
+    P.add_edge(h[i], h[2*i+2])
+    Hout_DFS(P, h, i)
+
+def HoutHeap_DFS(P, h, i):
+    # Add the two edges leading to other Hout heaps
+    P.add_edge(h[i].root, h[2*i+1].root)
+    HoutHeap_DFS(P, h, 2*i+1)
+    P.add_edge(h[i].root, h[2*i+2].root)
+    HoutHeap_DFS(P, h, 2*i+2)
+
+    # Add its own heap
+    P.add_edge(h[i].root, h[i].heap[0])
+    Hout_DFS(P, h[i], 0)
+
+# Transform all the heaps into nodes in 1 digraph
+def prepareP(P, H_G_list):
+    # iterate over H_G
+    for HoutHeap in H_G_list:
+        # HoutHeap = heap of Hout objects
+        # Traverse the Hout heap, add edges from the root elements to the lower roots
+        if HoutHeap != []:
+            HoutHeap_DFS(P, HoutHeap, 0)
+
+def augmentP(P):
+    pass
 
 # G:    a networkx DiGraph
 # src:  the source node
@@ -219,7 +248,7 @@ def shortest_paths(G, src, dst, k):
     # where the parent of any path p is prefpath(p)
     # This tree will be heap-ordered by Lemma 3: l(p) >= l(prefpath(p))
     # (the empty sequence will be the root)
-    pathTree = sidetrackEdge_path_tree(G, pred, src)
+    pathTree = sidetrackEdge_path_tree(G, pred, src, dst)
 
     # Calculate Hout(v) for every vertex and add the resulting heap as attribute to v
     for v in G.nodes():
@@ -229,3 +258,13 @@ def shortest_paths(G, src, dst, k):
     # where every root also points to the rest its original Hout heap
     G = calc_H_G(G, pred, dst)
 
+    # Retrieve H_G(head(lastsidetrack(p))) for each node p in pathTree
+    # such that we can build P(G)
+    H_G_list = []
+    for p in pathTree.nodes: # p is of the form (v, u, stc)
+        H_G_list.append(G.nodes[p[1]]['H_G'])
+
+    P = nx.DiGraph()
+    prepareP(P, H_G_list) # results in a graph of STCedge elements
+
+    augmentP(P)
