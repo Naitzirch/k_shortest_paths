@@ -227,7 +227,7 @@ def HoutHeap_DFS(P, h, i, H_G_dict):
     HoutHeap_DFS(P, h, 2*i+2, H_G_dict)
 
     # Add its own (STCedge) heap (inner child)
-    P.add_edge(h[i].root, h[i].heap[0])
+    P.add_edge(h[i].root, h[i].heap[0], weight=(h[i].heap[0].strc - h[i].root.strc))
     Hout_DFS(P, h[i].heap, 0, H_G_dict)
 
     # Add an edge from p (that corresponds to (u, w)) to h(w) (aka h(p.head)) with weight d(h(p.head))
@@ -240,7 +240,9 @@ def prepare_and_augmentP(P, H_G_dict, src):
 
     # augmentation: Add a root node
     empty_seq = STCedge(None, src, {'weight': 0, 'sidetrackCost': 0})
-    P.add_edge(empty_seq, H_G_dict[empty_seq].root)
+    # and connect it to h(src)
+    h_s = H_G_dict[empty_seq][0].root
+    P.add_edge(empty_seq, h_s, weight=h_s.strc)
 
     # iterate over H_G
     for l in H_G_dict: # last sidetrack edge in sequence for path p
@@ -249,10 +251,55 @@ def prepare_and_augmentP(P, H_G_dict, src):
         # Traverse the Hout heap, add edges from the root elements to the lower roots
         if H_G != []:
             HoutHeap_DFS(P, H_G, 0, H_G_dict)
+    
+    return empty_seq
 
-def augmentP(P, src):
-    empty_seq = STCedge(src, src, {'weight': 0, 'sidetrackCost': 0})
-    P.add_edge()
+
+class EHeapElement:
+    def __init__(self, seq, weight):
+        self.seq = seq
+        self.weight = weight
+    def __hash__(self):
+        return hash((self.seq, self.weight))
+    def __eq__(self, other) : 
+        return self.__dict__ == other.__dict__
+    def __ne__(self, other):
+        return not(self.__dict__ == other.__dict__)
+
+# node: roote node to start BFS from
+def P_to_Heap(H, P, node):
+
+    n1 = next(iter(P.adj[node]))
+    Er = EHeapElement([node], 0)
+    En = EHeapElement([node, n1], P.adj[node][n1]['weight'])
+    H.add_edge(Er, En)
+
+    Er = EHeapElement([node], P.adj[node][n1]['weight'])
+
+    # BFS P
+    queue = []
+    queue.append( (node, n1, Er) )
+
+    while queue:
+        l = queue.pop(0)
+        l_t = l[0] # tail
+        l_h = l[1] # head
+        l_s = l[2].seq
+        l_w = l[2].weight
+
+        for child in P.adj[l_h]:
+                if P.adj[l_h][child]['cross_edge'] == True:
+                    m = EHeapElement(l_s.append(l_t), l_w)
+                    n = EHeapElement(l_s.append(l_t).append(child), (l_w + P.adj[l_h][child]['weight']))
+                    o = EHeapElement(l_s.append(l_t), (l_w + P.adj[l_h][child]['weight']))
+                    H.add_edge(m, n)
+                    queue.append( (l_h, child, o) )
+                else:
+                    m = EHeapElement(l_s.append(child), (l_w + P.adj[l_h][child]['weight']))
+                    H.add_edge(l[2], m)
+                    n = EHeapElement(l_s, (l_w + P.adj[l_h][child]['weight']))
+                    queue.append( (l_h, child, n) )
+
 
 # G:    a networkx DiGraph
 # src:  the source node
@@ -287,7 +334,7 @@ def shortest_paths(G, src, dst, k):
 
     # Calculate H_G(v) for every vertex, a balanced heap of the roots of Hout on the path from v to t
     # where every root also points to the rest its original Hout heap
-    G = calc_H_G(G, pred, dst)
+    G = calc_H_G(G, pred, dst) # For every vertex H_G is added as an attribute
 
     # Retrieve H_G(head(lastsidetrack(p))) for each node p in pathTree
     # such that we can build P(G)
@@ -296,4 +343,11 @@ def shortest_paths(G, src, dst, k):
         H_G_dict[p] = G.nodes[p.head]['H_G']
 
     P = nx.DiGraph()
-    prepare_and_augmentP(P, H_G_dict, src) # results in a graph of STCedge elements
+    Proot = prepare_and_augmentP(P, H_G_dict, src) # results in a graph of STCedge elements
+    # P is now the completed path graph P(G), its root is returned by the function above
+
+    # Lastly, P(G) will need to be transformed into a 4-heap H(G), so that the nodes
+    # in H(G) represent paths in G. H(G) is constructed by forming a node for each path in
+    # P(G) rooted at Proot.
+    H = nx.DiGraph()
+    P_to_Heap(H, P, Proot)
