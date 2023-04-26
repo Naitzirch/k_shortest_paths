@@ -259,6 +259,8 @@ class EHeapElement:
     def __init__(self, seq, weight):
         self.seq = seq
         self.weight = weight
+    def __lt__(self, other):
+        return self.weight < other.weight
     def __hash__(self):
         return hash((self.seq, self.weight))
     def __eq__(self, other) : 
@@ -299,6 +301,42 @@ def P_to_Heap(H, P, node):
                     H.add_edge(l[2], m)
                     n = EHeapElement(l_s, (l_w + P.adj[l_h][child]['weight']))
                     queue.append( (l_h, child, n) )
+    return Er
+
+# H, a root, heap tuple
+def pop_from_H(root, H):
+    v = root
+    last_root = v
+    while H.adj[v]:
+        # Get minimum of child of root
+        m = min(H.adj[v])
+        
+        # remove edge between root and minimum of its childeren
+        H.remove_edge(v, m)
+
+        # save original childeren of root and minimum child of root
+        r_childeren = copy.copy(H.adj[v])
+        m_childeren = copy.copy(H.adj[m])
+
+        # remove the root and the minimum child
+        H.remove_node(v)
+        H.remove_node(m)
+
+        # add the original childeren of root as childeren of the minimum
+        H.add_edges_from(list((m, w) for w in r_childeren))
+        # add the original childeren of minimum as childeren of the root
+        H.add_edges_from(list((v, n) for n in m_childeren))
+
+        # add root as child of minimum
+        H.add_edge(m, v)
+
+        # add from last root to the minimum
+        if last_root != root:
+            H.add_edge(last_root, m)
+        last_root = m
+
+    H.remove_node(v)
+    return root
 
 
 # G:    a networkx DiGraph
@@ -350,4 +388,12 @@ def shortest_paths(G, src, dst, k):
     # in H(G) represent paths in G. H(G) is constructed by forming a node for each path in
     # P(G) rooted at Proot.
     H = nx.DiGraph()
-    P_to_Heap(H, P, Proot)
+    Hroot = P_to_Heap(H, P, Proot)
+    H = (Hroot, H)
+
+    # To find the k shortest paths, pop k times from H and append to list
+    paths = []
+    for _ in range(k):
+        paths.append(pop_from_H(*H))
+
+    return paths
