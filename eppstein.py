@@ -72,6 +72,8 @@ class STCedge:
     def __eq__(self, other) : 
         return self.__dict__ == other.__dict__
     def __ne__(self, other):
+        if not(isinstance(other, STCedge)): return True
+        if not(self.__class__ == other.__class__): return True
         return not(self.__dict__ == other.__dict__)
 
 # Heap of the out edges of v

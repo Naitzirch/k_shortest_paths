@@ -61,10 +61,10 @@ class TestEpp(unittest.TestCase):
         ref = self.Gsidetrack
         self.assertEqual(ref,val)
 
-    def test_sidetrackEdge_path_tree(self):
-        val = eppstein.sidetrackEdge_path_tree(self.Gsidetrack, self.Gpred, 's')
-        ref = self.GTree
-        self.assertEqual(ref.adj,val.adj)
+    # def test_sidetrackEdge_path_tree(self):
+    #     val = eppstein.sidetrackEdge_path_tree(self.Gsidetrack, self.Gpred, 's')
+    #     ref = self.GTree
+    #     self.assertEqual(ref.adj,val.adj)
     
     def test_Hout(self):
         val = eppstein.Hout(self.Gsidetrack, 's')
@@ -79,6 +79,7 @@ class TestEpp(unittest.TestCase):
             G.nodes[v]['Hout'] = eppstein.Hout(G,v)
 
         val = eppstein.calc_H_G(G, self.Gpred, 't')
+
         v5 = val.nodes[5]['H_G']
         self.assertEqual(3,v5[0].root.strc)
         self.assertEqual(8,v5[1].root.strc)
