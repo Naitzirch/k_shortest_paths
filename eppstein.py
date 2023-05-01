@@ -330,7 +330,8 @@ def P_to_Heap(H, P, node):
                     queue.append( (child, l[1], t_w) )
     return Er
 
-# H, a root, heap tuple
+# root: EHeapElement consisting of a sequence of STCedges and the additional stc
+# H: The heap to pop from
 def pop_from_H(root, H):
 
     # check if there is anything to pop
@@ -425,12 +426,46 @@ def shortest_paths(G, src, dst, k):
     Hroot = P_to_Heap(H, P, Proot)
 
     # To find the k shortest paths, pop k times from H and append to list
-    paths = []
+    STCpaths = []
     for i in range(k):
         s, Hroot = pop_from_H(Hroot, H)
-        paths.append(s)
+        STCpaths.append(s)
         if Hroot is None:
-            print(f"No more than {i+1} paths")
+            if i+1 > k:
+                print(f"No more than {i+1} paths") 
             break
+
+    # Convert STCedge sequence to sequence of nodes describing a path in G
+    # Convert cost to complete cost
+    # Goal: a list of tuples (l, c): l, a list of nodes; c, the cost
+    paths = []
+    sd = dist[src] # shortest path distance, to be added to the sidetrack cost
+    for p in STCpaths:
+        l = [src]
+        x = src
+        t = 1
+        while True:
+
+            # Follow sidetrack edges if possible
+            while t < len(p.seq) and x == p.seq[t].tail:
+                x = p.seq[t].head
+                l.append(x)
+                t += 1
+            
+            # else follow the shortest path
+            if x != dst:
+                x = pred.get(x)[0]
+                l.append(x)
+            else:
+                break
+        
+        # add dst to sequence in case we reached it over a shortest path edge
+        if l[-1] != dst:
+            l.append(dst)
+        
+        # cost of the entire path
+        c = sd + p.weight
+
+        paths.append((l, c))
 
     return paths

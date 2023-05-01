@@ -1,8 +1,12 @@
 import unittest
 import heapq
 import networkx as nx
-import eppstein
 import matplotlib.pyplot as plt
+
+# files in same dir
+import eppstein
+import test_graph
+
 
 class TestEpp(unittest.TestCase):
 
@@ -87,6 +91,25 @@ class TestEpp(unittest.TestCase):
     
         self.GH_G = self.GHout.copy()
 
+
+        # From test_graph.py from the epsnet repo
+        self.graph = nx.DiGraph()
+        self.graph.add_nodes_from(["A","B","C","D","E","F","G","H","I"])
+        self.graph.add_weighted_edges_from([
+            ("A","B",2),
+            ("A","C",0),
+            ("B","D",2),
+            ("B","E",6),
+            ("C","E",8),
+            ("C","F",3),
+            ("D","G",5),
+            ("E","G",3),
+            ("E","H",4),
+            ("F","H",4),
+            ("G","I",5),
+            ("H","I",6),
+            ])
+
     def tearDown(self):
         pass
 
@@ -159,8 +182,15 @@ class TestEpp(unittest.TestCase):
 
     def test_shortest_paths(self):
         sp = eppstein.shortest_paths(self.G, 's', 't', 6)
-        for i in sp:
-            print(i)
+        ref = [
+            (['s', 3, 't'], 20),
+            (['s', 2, 't'], 22),
+            (['s', 5, 6, 3, 't'], 26),
+            (['s', 3, 2, 't'], 28),
+            (['s', 5, 6, 't'], 29),
+            (['s', 5, 6, 3, 2, 't'], 34)
+        ]
+        self.assertEqual(sp,ref)
 
 if __name__ == '__main__':
     unittest.main()
