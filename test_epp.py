@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 # files in same dir
 import eppstein
 import test_graph
+from epsnet.utils import draw_graph
 
 
 class TestEpp(unittest.TestCase):
@@ -89,7 +90,48 @@ class TestEpp(unittest.TestCase):
         self.GHout.nodes[5]['Hout'] = v5
         self.GHout.nodes[6]['Hout'] = v6
     
-        self.GH_G = self.GHout.copy()
+        # self.GH_G = self.GHout.copy()
+
+
+        # Second test graph
+        self.F = nx.DiGraph()
+        self.F.add_weighted_edges_from([(0, 2, 5), (1, 2, 3), (0, 1, 2), (1, 3, 3), (3, 2, 1)])
+
+        self.Fpred = {2: [], 0: [2, 1], 1: [2], 3: [2]}
+        self.Fdist = {2: 0, 3: 1, 1: 3, 0: 5}
+
+        self.Fsidetrack = nx.DiGraph()
+        self.Fsidetrack.add_edges_from([
+            (0, 2, {'weight': 5, 'sidetrackCost': 0}),
+            (0, 1, {'weight': 2, 'sidetrackCost': 0}),
+            (1, 2, {'weight': 3, 'sidetrackCost': 0}),
+            (1, 3, {'weight': 3, 'sidetrackCost': 1}),
+            (3, 2, {'weight': 1, 'sidetrackCost': 0}),
+        ])
+
+        self.FTree = nx.DiGraph()
+        self.FTree.add_edges_from([
+            (eppstein.STCedge(None, 0, {'weight': 0, 'sidetrackCost': 0}),
+             eppstein.STCedge(1, 3, {'weight': 3, 'sidetrackCost': 1})),
+        ])
+
+        self.FHout = self.Fsidetrack.copy()
+        v0 = eppstein.Hout(self.Fsidetrack, 0)
+        v0.root = None
+        v0.heap = []
+        v1 = eppstein.Hout(self.Fsidetrack, 1)
+        v1.root = eppstein.STCedge(1, 3, self.Fsidetrack.adj[1][3])
+        v1.heap = []
+        v2 = eppstein.Hout(self.Fsidetrack, 2)
+        v2.root = None
+        v2.heap = []
+        v3 = eppstein.Hout(self.Fsidetrack, 3)
+        v3.root = None
+        v3.heap = []
+        self.FHout.nodes[0]['Hout'] = v0
+        self.FHout.nodes[1]['Hout'] = v1
+        self.FHout.nodes[2]['Hout'] = v2
+        self.FHout.nodes[3]['Hout'] = v3
 
 
         # From test_graph.py from the epsnet repo
@@ -115,33 +157,42 @@ class TestEpp(unittest.TestCase):
 
     # Actual tests
     def test_calc_sidetrack_cost(self):
-        val = eppstein.calc_sidetrack_cost(self.G, self.Gdist)
+        val = self.G
+        eppstein.calc_sidetrack_cost(val, self.Gdist)
         ref = self.Gsidetrack
         self.assertEqual(ref.adj,val.adj)
+
+        val = self.F
+        eppstein.calc_sidetrack_cost(val, self.Fdist)
+        ref = self.Fsidetrack
+        self.assertEqual(val.adj, ref.adj)
+
 
     def test_sidetrackEdge_path_tree(self):
         val = eppstein.sidetrackEdge_path_tree(self.Gsidetrack, self.Gpred, 's')
         ref = self.GTree
         self.assertEqual(ref.adj,val.adj)
+
+        val = eppstein.sidetrackEdge_path_tree(self.Fsidetrack, self.Fpred, 0)
+
+        ref = self.FTree
+        self.assertEqual(val.adj, ref.adj)
     
+
     def test_Hout(self):
         for v in self.Gsidetrack.nodes():
             self.Gsidetrack.nodes[v]['Hout'] = eppstein.Hout(self.Gsidetrack,v)
-        
-        # for v in self.Gsidetrack.nodes():
-        #     print(v, ":", self.Gsidetrack.nodes[v]['Hout'])
-        # print()
-        # for v in self.GHout.nodes():
-        #     print(v, ":", self.GHout.nodes[v]['Hout'])
-
         self.assertEqual(self.Gsidetrack.adj, self.GHout.adj)
 
+        val = self.Fsidetrack
+        for v in val.nodes():
+            val.nodes[v]['Hout'] = eppstein.Hout(self.Fsidetrack,v)  
+        self.assertEqual(val.adj, self.FHout.adj)
+
+
     def test_calc_H_G(self):
+        # test explanation example
         val = eppstein.calc_H_G(self.GHout, self.Gpred, 't')
-
-        # for v in val.nodes():
-        #     print(v, ":", val.nodes[v]['H_G'])
-
 
         v5 = val.nodes[5]['H_G']
         self.assertEqual(3,v5[0].root.strc)
@@ -156,14 +207,47 @@ class TestEpp(unittest.TestCase):
         self.assertEqual(1, len(vS[0].heap))
         self.assertEqual([],vS[1].heap)
 
+        # test multiple shortest paths
+        val = eppstein.calc_H_G(self.FHout, self.Fpred, 2)
+        v0 = val.nodes[0]['H_G']
+        v2 = val.nodes[2]['H_G']
+        self.assertEqual(1,v0[0].root.strc)
+        self.assertEqual([],v0[0].heap)
+        self.assertEqual(v2,[])
+        # for v in val.nodes():
+        #     print(v, ":", val.nodes[v]['H_G'])
+
+
     # def test_P_to_Heap(self):
-    #     G = eppstein.calc_H_G(self.GHout, self.Gpred, 't')
-    #     H_G_dict = {}
-    #     for p in self.GTree.nodes: # p is of the form STCedge()
-    #         H_G_dict[p] = G.nodes[p.head]['H_G']
+    # #     G = eppstein.calc_H_G(self.GHout, self.Gpred, 't')
+    # #     H_G_dict = {}
+    # #     for p in self.GTree.nodes: # p is of the form STCedge()
+    # #         H_G_dict[p] = G.nodes[p.head]['H_G']
         
+    # #     P = nx.DiGraph()
+    # #     Proot = eppstein.prepare_and_augmentP(P, H_G_dict, 's')
+
+    # #     print(next(iter(P.adj[Proot])))
+
+    # #     H = nx.DiGraph()
+    # #     Hroot = eppstein.P_to_Heap(H, P, Proot)
+
+
+    # #     print()
+    # #     for n in H.adj:
+    # #         print(n, "->", H.adj[n])
+    # #         print()
+
+    # #     nx.draw(H)
+    # #     plt.draw()
+    # #     plt.show()
+    #     G = eppstein.calc_H_G(self.FHout, self.Fpred, 2)
+    #     H_G_dict = {}
+    #     for p in self.FTree.nodes: # p is of the form STCedge()
+    #         H_G_dict[p] = G.nodes[p.head]['H_G']
+
     #     P = nx.DiGraph()
-    #     Proot = eppstein.prepare_and_augmentP(P, H_G_dict, 's')
+    #     Proot = eppstein.prepare_and_augmentP(P, H_G_dict, 0)
 
     #     print(next(iter(P.adj[Proot])))
 
@@ -176,12 +260,13 @@ class TestEpp(unittest.TestCase):
     #         print(n, "->", H.adj[n])
     #         print()
 
-    #     nx.draw(H)
-    #     plt.draw()
+    #     draw_graph(H)
     #     plt.show()
 
+
     def test_shortest_paths(self):
-        sp = eppstein.shortest_paths(self.G, 's', 't', 6)
+        # test explanation example
+        sp = eppstein.k_shortest_paths(self.G, 's', 't', 6)
         ref = [
             (['s', 3, 't'], 20),
             (['s', 2, 't'], 22),
@@ -191,6 +276,21 @@ class TestEpp(unittest.TestCase):
             (['s', 5, 6, 3, 2, 't'], 34)
         ]
         self.assertEqual(sp,ref)
+
+        # test graph where not every node is reachable from source
+        g = nx.DiGraph()
+        g.add_weighted_edges_from([(0, 2, 5), (1, 2, 3)])
+        ref = [([0, 2], 5)]
+        val = eppstein.k_shortest_paths(g, 0, 2, 1)
+        self.assertEqual(ref,val)
+
+        # g.clear()
+        # g.add_weighted_edges_from([(0, 2, 5), (1, 2, 3), (0, 1, 2)])
+        # # g = self.F
+        # draw_graph(g)
+        # plt.show()
+        # print(eppstein.k_shortest_paths(g, 0, 2, 2))
+
 
 if __name__ == '__main__':
     unittest.main()

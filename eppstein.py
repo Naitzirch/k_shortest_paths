@@ -117,39 +117,17 @@ class Hout:
 # STree: The Sidetrack Sequence path tree to be constructed
 # prevNode: the previous node in STree to which the new found sidetrack edges should be appended
 def get_sidetrack_edges_DFS(G, pred, u, STree, prevNode):
-    v = [u]
-    # iterate over all nodes on the shortest path from src to dst
-    while v != []:
-        v = v[0]
-        for nbr in G.adj[v]:
-            e = STCedge(v, nbr, G.adj[v][nbr])
-            if e.strc != 0:
-                STree.add_edge(prevNode, e)
-                STree = get_sidetrack_edges_DFS(G, pred, nbr, STree, e)
-        v = pred.get(v)
+    vl = [u]
+    # iterate over all nodes on all shortest paths from src to dst
+    while vl != []:
+        for v in vl:
+            for nbr in G.adj[v]:
+                e = STCedge(v, nbr, G.adj[v][nbr])
+                if e.strc != 0:
+                    STree.add_edge(prevNode, e)
+                    STree = get_sidetrack_edges_DFS(G, pred, nbr, STree, e)
+        vl = pred.get(v)
     
-    return STree
-
-# get the sidetrack edges with tails on the shortest path from u to dst
-# G: the original graph
-# pred: next node on the shortest path tree from u to dst
-# u: source node
-# STree: The Sidetrack Sequence path tree to be constructed
-# prevNode: the previous node in STree to which the new found sidetrack edges should be appended
-def get_sidetrack_edges_BFS(G, pred, u, STree, prevNode):
-    v = [u]
-    # iterate over all nodes on the shortest path from src to dst
-    while v != []:
-        v = v[0]
-        for nbr in G.adj[v]:
-            stc = G.adj[v][nbr]['sidetrackCost']
-            if stc != 0:
-                STree.add_edge(prevNode, (v, nbr, stc))
-        v = pred.get(v)
-    
-    for child in STree.adj[prevNode]:
-        STree = get_sidetrack_edges_BFS(G, pred, child[1], STree, child)
-
     return STree
 
 # nodes in the sidetrack edge path tree will be of the form
@@ -166,21 +144,21 @@ def sidetrackEdge_path_tree(G, pred, src):
 
     return get_sidetrack_edges_DFS(G, pred, src, STree, root)
 
+def clean_graph(G, dist):
+    tbr = []
+    for u in G.nodes:
+        if dist.get(u) == None:
+            tbr.append(u)
+    G.remove_nodes_from(tbr)
 
 def calc_sidetrack_cost(G, dist):
     # iterate over all nodes in adjecency list form ( should take O(m) )
     for u, nbrs in G.adj.items():
-        # remove nodes from which dst can't be reached
-        if dist.get(u) == None:
-            G.remove_node(u)
-        
         # Add sidetrack costs as attribute of edges to the edges in G
         # [and connections from u to head(sidetrack-edge) for each side-track edge on the shortest path from u to t]?
         # delta(e) = l(e) + dist(head(e), t) - dist(tail(e),t)
-        else:
-            for nbr, eattr in nbrs.items():
-                G[u][nbr]['sidetrackCost'] = eattr['weight'] + dist[nbr] - dist[u]
-    return G
+        for nbr, eattr in nbrs.items():
+            G[u][nbr]['sidetrackCost'] = eattr['weight'] + dist[nbr] - dist[u]
 
 # DFS to create H_G heaps for each vertex v
 # ordered by the value of the roots of each Hout heap on the shortest path from v to t
@@ -257,8 +235,12 @@ def prepare_and_augmentP(P, H_G_dict, src):
     # augmentation: Add a root node
     empty_seq = STCedge(None, src, {'weight': 0, 'sidetrackCost': 0})
     # and connect it to h(src)
-    h_s = H_G_dict[empty_seq][0].root
-    P.add_edges_from([ (empty_seq, h_s, {'weight': h_s.strc, 'cross_edge': False}) ])
+    h_s = H_G_dict[empty_seq]
+    if h_s == []:
+        P.add_node(empty_seq)
+    else:
+        h_sr = h_s[0].root
+        P.add_edges_from([ (empty_seq, h_sr, {'weight': h_sr.strc, 'cross_edge': False}) ])
 
     # iterate over H_G
     for l in H_G_dict: # last sidetrack edge in sequence for path p
@@ -291,9 +273,14 @@ class EHeapElement:
 
 # node: roote node to start BFS from
 def P_to_Heap(H, P, node):
+    Er = EHeapElement([node], 0)
+
+    # if the empty sequence is the only sequence for a path from s to t
+    if P.adj[node] == {}:
+        H.add_node(Er)
+        return Er
 
     n1 = next(iter(P.adj[node]))
-    Er = EHeapElement([node], 0)
     En = EHeapElement([node, n1], P.adj[node][n1]['weight'])
     H.add_edge(Er, En)
 
@@ -378,7 +365,7 @@ def pop_from_H(root, H):
 # src:  the source node
 # dst:  the destination node
 # k:    the number of paths
-def shortest_paths(G, src, dst, k):
+def k_shortest_paths(G, src, dst, k):
     # Calculate single-destination shortest path tree; this is the
     # same as a single-source shortest path tree in G-reverse
     R = G.reverse(copy=True)
@@ -392,8 +379,11 @@ def shortest_paths(G, src, dst, k):
     if dist.get(src) == None:
         return []
 
+    # remove nodes from which dst can't be reached
+    clean_graph(G, dist)
+
     # Calculate sidetrack costs for every edge and add them as attribute to the edge
-    G = calc_sidetrack_cost(G, dist)
+    calc_sidetrack_cost(G, dist)
     
     # Create a path tree with sidetrack(p) sequences S
     # where the parent of any path p is prefpath(p)
@@ -469,3 +459,17 @@ def shortest_paths(G, src, dst, k):
         paths.append((l, c))
 
     return paths
+
+    '''Different STCedge sequence to node sequence translation idea'''
+    # for each pair of subsequent STCedges in the sequence, we want to find all
+    # paths that connect them, consisting of non-STCedges only.
+    # For each of these paths, we want to continue doing this in the following pairs
+    # of subsequent STCedges
+    # for p in STCpaths:
+    #     ll = []
+    #     seq = p.seq
+    #     seq.append(STCedge(dst, None, {'weight': 0, 'sidetrackCost': 0}))
+    #     for i in range(len(seq)):
+    #         # find all paths from e.head to next(e).tail
+    #         m = []
+    #         if i < len(seq):
