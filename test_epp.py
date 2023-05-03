@@ -286,10 +286,10 @@ class TestEpp(unittest.TestCase):
 
         # g.clear()
         # g.add_weighted_edges_from([(0, 2, 5), (1, 2, 3), (0, 1, 2)])
-        # # g = self.F
-        # draw_graph(g)
-        # plt.show()
-        # print(eppstein.k_shortest_paths(g, 0, 2, 2))
+        g = self.F
+        draw_graph(g)
+        plt.show()
+        print(eppstein.k_shortest_paths(g, 0, 2, 2))
 
 
 if __name__ == '__main__':
