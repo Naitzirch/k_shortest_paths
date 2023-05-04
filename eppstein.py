@@ -374,6 +374,36 @@ def get_paths_between(pred, head, tail, path=[]):
                 paths.append(newpath)
         return paths
 
+
+
+# for each pair of subsequent STCedges in the sequence, we want to find all
+# paths that connect them, consisting of non-STCedges only.
+# For each of these paths, we want to continue doing this in the following pairs
+# of subsequent STCedges
+# p, EHeapElement: contains sequence of sidetrack edges and additional cost
+# sd: shortest path distance, to be added to the additional cost of a path
+# pred: predecessor nodes on the shortest path tree
+# dst: the destination node
+def get_all_paths_for_sequence(p, sd, pred, dst):
+    all_paths = [[]] # all paths corresponding to p
+    seq = p.seq
+    seq.append(STCedge(dst, None, {'weight': 0, 'sidetrackCost': 0}))
+
+    for i in range(len(seq)):
+        # find all shortest paths from e.head to next(e).tail
+        if i < len(seq) - 1:
+            new_all_paths = []
+            m = get_paths_between(pred, seq[i].head, seq[i+1].tail)
+            for l in all_paths:
+                for n in m:
+                    new_all_paths.append(copy.copy(l) + n)
+            all_paths = new_all_paths
+
+    # cost of the entire path
+    c = sd + p.weight
+    all_paths = [(sb, c) for sb in all_paths]
+    return all_paths
+
 # G:    a networkx DiGraph
 # src:  the source node
 # dst:  the destination node
@@ -428,78 +458,23 @@ def k_shortest_paths(G, src, dst, k):
     H = nx.DiGraph()
     Hroot = P_to_Heap(H, P, Proot)
 
-    # To find the k shortest paths, pop k times from H and append to list
-    STCpaths = []
-    for i in range(k):
-        s, Hroot = pop_from_H(Hroot, H)
-        STCpaths.append(s)
-        if Hroot is None:
-            if i+1 > k:
-                print(f"No more than {i+1} paths") 
-            break
-
-
-    paths = []
-    sd = dist[src] # shortest path distance, to be added to the sidetrack cost
-
     # Convert STCedge sequence to sequence of nodes describing a path in G
     # Convert cost to complete cost
     # Goal: a list of tuples (l, c): l, a list of nodes; c, the cost
-    # for p in STCpaths:
-    #     l = [src]
-    #     x = src
-    #     t = 1
-    #     while True:
+    paths = []
+    sd = dist[src] # shortest path distance, to be added to the sidetrack cost
 
-    #         # Follow sidetrack edges if possible
-    #         while t < len(p.seq) and x == p.seq[t].tail:
-    #             x = p.seq[t].head
-    #             l.append(x)
-    #             t += 1
-            
-    #         # else follow the shortest path
-    #         if x != dst:
-    #             x = pred.get(x)[0]
-    #             l.append(x)
-    #         else:
-    #             break
+    # To find the k shortest paths, pop at most k times from H and append to list
+    # We will convert STCedge sequences to a list of paths after each pop
+    while len(paths) < k:
+        p, Hroot = pop_from_H(Hroot, H)
+
+        paths += get_all_paths_for_sequence(p, sd, pred, dst)
+
+        if Hroot is None:
+            if len(paths) < k:
+                print(f"No more than {len(paths)} paths")
+            break
         
-    #     # add dst to sequence in case we reached it over a shortest path edge
-    #     if l[-1] != dst:
-    #         l.append(dst)
-        
-    #     # cost of the entire path
-    #     c = sd + p.weight
-
-    #     paths.append((l, c))
-
-
-    '''Different STCedge sequence to node sequence translation idea'''
-    # for each pair of subsequent STCedges in the sequence, we want to find all
-    # paths that connect them, consisting of non-STCedges only.
-    # For each of these paths, we want to continue doing this in the following pairs
-    # of subsequent STCedges
-    for p in STCpaths:
-        all_paths = [[]] # all paths corresponding to p
-        seq = p.seq
-        seq.append(STCedge(dst, None, {'weight': 0, 'sidetrackCost': 0}))
-
-        for i in range(len(seq)):
-            # find all shortest paths from e.head to next(e).tail
-            if i < len(seq) - 1:
-                new_all_paths = []
-                m = get_paths_between(pred, seq[i].head, seq[i+1].tail)
-                for l in all_paths:
-                    for n in m:
-                        new_all_paths.append(copy.copy(l) + n)
-                all_paths = new_all_paths
-
-        # cost of the entire path
-        c = sd + p.weight
-        all_paths = [(sb, c) for sb in all_paths]
-
-        paths += all_paths
-        
-
     return paths
 

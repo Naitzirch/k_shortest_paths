@@ -149,17 +149,12 @@ class TestKShortest(unittest.TestCase):
         p = 0.5
         k = 10 # Number of paths to consider
 
-        g_rand = nx.DiGraph()
-        g_rand.add_weighted_edges_from([(0, 2, 5), (1, 2, 3), (0, 1, 2)])
-        n = 3
-        k = 2
-
-        # lines = open("g_rand", "r")
-        # g_rand = nx.parse_edgelist(lines, create_using=nx.DiGraph(), nodetype=int)
+        lines = open("g_rand", "r")
+        g_rand = nx.parse_edgelist(lines, create_using=nx.DiGraph(), nodetype=int)
         # g_rand = generate_random_graph(n, p)
         # nx.write_edgelist(g_rand, 'g_rand2')
         # print(g_rand.nodes)
-        print(nx.is_directed_acyclic_graph(g_rand))
+        # print(nx.is_directed_acyclic_graph(g_rand))
         draw_graph(g_rand)
         plt.show()
 

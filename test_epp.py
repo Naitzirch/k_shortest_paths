@@ -284,12 +284,21 @@ class TestEpp(unittest.TestCase):
         val = eppstein.k_shortest_paths(g, 0, 2, 1)
         self.assertEqual(ref,val)
 
-        # g.clear()
-        # g.add_weighted_edges_from([(0, 2, 5), (1, 2, 3), (0, 1, 2)])
+        g.clear()
+        g.add_weighted_edges_from([(0, 2, 5), (1, 2, 3), (0, 1, 2)])
+        l = eppstein.k_shortest_paths(g, 0, 2, 2)
+        self.assertIn(([0, 2], 5), l)
+        self.assertIn(([0, 1, 2], 5), l)
+
         g = self.F
-        draw_graph(g)
-        plt.show()
-        print(eppstein.k_shortest_paths(g, 0, 2, 2))
+        l = eppstein.k_shortest_paths(g, 0, 2, 2)
+        self.assertIn(([0, 2], 5), l)
+        self.assertIn(([0, 1, 2], 5), l)
+
+        l = eppstein.k_shortest_paths(g, 0, 2, 3)
+        self.assertIn(([0, 2], 5), l)
+        self.assertIn(([0, 1, 2], 5), l)
+        self.assertIn(([0, 1, 3, 2], 6), l)
 
 
 if __name__ == '__main__':
