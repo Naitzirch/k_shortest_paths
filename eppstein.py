@@ -22,41 +22,6 @@ import heapq
 import networkx as nx
 
 
-
-# # get_sidetrack_edges routines will run infinite if G has cycles... -> solution with dist[] dictionary and counter? or seen unseen counter?
-# # DFS
-# def get_sidetrack_edges_DFS(G, pred, src):
-#     v = src
-#     temp_dict = {}
-#     # iterate over all nodes on the shortest path from src to dst
-#     while v != None:
-#         # iterate over all out edges of v
-#         for nbr in G.adj[v]:
-#             stc = G.adj[v][nbr]['sidetrackCost']
-#             if stc != 0:
-#                 temp_dict[(v, nbr, stc)] = get_sidetrack_edges_DFS(G, pred, nbr)
-#         v = pred.get(v)
-
-#     return temp_dict
-
-# # BFS
-# def get_sidetrack_edges_BFS(G, pred, src):
-#     v = src
-#     temp_dict = {}
-#     # iterate over all nodes on the shortest path from src to dst
-#     while v != None:
-#         # iterate over all out edges of v
-#         for nbr in G.adj[v]:
-#             stc = G.adj[v][nbr]['sidetrackCost']
-#             if stc != 0:
-#                 temp_dict[(v, nbr, stc)] = None
-#         v = pred.get(v)
-
-#     for x in temp_dict:
-#         temp_dict[x] = get_sidetrack_edges_BFS(G, pred, nbr)
-
-#     return temp_dict
-
 class STCedge:
     def __init__(self, tail, head, attr):
         self.tail = tail
@@ -109,6 +74,8 @@ class Hout:
     def __repr__(self):
         return f'Hout({self.root}, {self.heap})'
 
+
+# # get_sidetrack_edges routines will run infinite if G has cycles... -> solution with dist[] dictionary and counter? or seen unseen counter?
 
 # get the sidetrack edges with tails on the shortest path from u to dst
 # G: the original graph
@@ -189,16 +156,18 @@ def calc_H_G(G, pred, dst):
 def Hout_DFS(P, h, i, H_G_dict):
     if 2*i+1 < len(h):
         P.add_edges_from([ (h[i], h[2*i+1], {'weight': (h[2*i+1].strc - h[i].strc), 'cross_edge': False}) ]) # For edge (u, v) in D(G), add as edge weight: d(v) - d(u)
-        Hout_DFS(P, h, i, H_G_dict)
+        Hout_DFS(P, h, 2*i+1, H_G_dict)
     if 2*i+2 < len(h):
-        P.add_edge([ (h[i], h[2*i+2], {'weight': (h[2*i+2].strc - h[i].strc), 'cross_edge': False}) ])
-        Hout_DFS(P, h, i, H_G_dict)
+        P.add_edges_from([ (h[i], h[2*i+2], {'weight': (h[2*i+2].strc - h[i].strc), 'cross_edge': False}) ])
+        Hout_DFS(P, h, 2*i+2, H_G_dict)
 
     # CROSS_EDGE
     # Add an edge from p=h[i] (that corresponds to (u, w)) to h(w) (aka h(p.head)) with weight d(h(p.head))
     # (= edge from p to H_G_dict[p][0].root)
-    h_w = H_G_dict[h[i]][0].root
-    P.add_edges_from([ (h[i], h_w, {'weight': h_w.strc, 'cross_edge': True}) ])
+    h_w = H_G_dict[h[i]]
+    if h_w != []:
+        h_w = h_w[0].root
+        P.add_edges_from([ (h[i], h_w, {'weight': h_w.strc, 'cross_edge': True}) ])
 
 def HoutHeap_DFS(P, h, i, H_G_dict):
     # Add the two edges leading to other Hout heaps
@@ -374,8 +343,6 @@ def get_paths_between(pred, head, tail, path=[]):
                 paths.append(newpath)
         return paths
 
-
-
 # for each pair of subsequent STCedges in the sequence, we want to find all
 # paths that connect them, consisting of non-STCedges only.
 # For each of these paths, we want to continue doing this in the following pairs
@@ -403,6 +370,7 @@ def get_all_paths_for_sequence(p, sd, pred, dst):
     c = sd + p.weight
     all_paths = [(sb, c) for sb in all_paths]
     return all_paths
+
 
 # G:    a networkx DiGraph
 # src:  the source node

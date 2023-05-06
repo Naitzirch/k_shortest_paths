@@ -7,6 +7,10 @@ import eppstein
 from epsnet.graph import generate_random_graph
 from epsnet.utils import draw_graph
 
+# key for sorting the list of (list, cost) tuples
+def custom_key(item):
+    l, n = item
+    return (n, len(l), l)
 
 def create_pos_weighted_graph():
     graph = nx.DiGraph() # Directed Graph
@@ -108,40 +112,6 @@ class TestKShortest(unittest.TestCase):
             ("H","I",6),
             ])
     
-    # def test_waterman_waterman_example(self):
-    #     #Example from Waterman and Byres (10.1016/0025-5564(85)90096-3) 
-    #     val = next_best_paths_waterman(self.graph,"A","I",16)
-    #     ref = [(['A', 'C', 'F', 'H', 'I'], 13), (['A', 'B', 'D', 'G', 'I'], 14)]
-    #     self.assertEqual(ref,val)
-
-    # def test_waterman_k_waterman_example(self):
-    #     #Example from Waterman and Byres (10.1016/0025-5564(85)90096-3) 
-    #     val = next_best_k_paths_waterman(self.graph,"A","I",2)
-    #     ref = [(['A', 'C', 'F', 'H', 'I'], 13), (['A', 'B', 'D', 'G', 'I'], 14)]
-    #     self.assertEqual(ref,val)
-
-    # def test_waterman_k_waterman_example_3(self):
-    #     #Example from Waterman and Byres (10.1016/0025-5564(85)90096-3) 
-    #     val = next_best_k_paths_waterman(self.graph,"A","I",3)
-    #     self.assertEqual(len(val),3)
-
-    # def test_rnd_graph_waterman(self):
-    #     # Get all available paths
-    #     n = 10
-    #     p = 0.5
-    #     cutoff = 18
-
-    #     g_rand = generate_random_graph(n, p)
-    #     pathvec = list(nx.all_simple_paths(g_rand, 0, n-1))
-    #     weightvec = [(x, nx.path_weight(g_rand, x, weight="weight"))
-    #                  for x in pathvec]
-    #     pathvec_full = sorted(weightvec, key=lambda x:(x[1],tuple(x[0])))
-    #     pathvec_waterman = next_best_paths_waterman(g_rand,0,n-1,cutoff)
-
-    #     pathvec_full_filtered = list(
-    #         filter(lambda x: x[1] < cutoff, pathvec_full))
-    #     self.assertEqual(pathvec_waterman,pathvec_full_filtered)
-    
     # edited
     # python -m unittest
     def test_rnd_graph_eppstein(self):
@@ -149,26 +119,35 @@ class TestKShortest(unittest.TestCase):
         p = 0.5
         k = 10 # Number of paths to consider
 
-        lines = open("g_rand", "r")
-        g_rand = nx.parse_edgelist(lines, create_using=nx.DiGraph(), nodetype=int)
-        # g_rand = generate_random_graph(n, p)
+        # lines = open("g_rand2", "r")
+        # g_rand = nx.parse_edgelist(lines, create_using=nx.DiGraph(), nodetype=int)
+        # lines.close()
+        g_rand = generate_random_graph(n, p)
         # nx.write_edgelist(g_rand, 'g_rand2')
         # print(g_rand.nodes)
         # print(nx.is_directed_acyclic_graph(g_rand))
-        draw_graph(g_rand)
-        plt.show()
+        # draw_graph(g_rand)
+        # plt.show()
 
 
         # Get all available paths
         pathvec = list(nx.all_simple_paths(g_rand, 0, n-1))
-        weightvec = [(x, nx.path_weight(g_rand, x, weight="weight"))
-                     for x in pathvec]
+        weightvec = [(x, nx.path_weight(g_rand, x, weight="weight")) for x in pathvec]
         pathvec_full = sorted(weightvec, key=lambda x:(x[1],tuple(x[0])))
         
         pathvec_eppstein = eppstein.k_shortest_paths(g_rand,0,n-1,k)
 
+        pathvec_full.sort(key=custom_key)
+        pathvec_eppstein.sort(key=custom_key)
+
         pathvec_full_cut = pathvec_full[:k]
-        self.assertEqual(pathvec_eppstein,pathvec_full_cut)
+        pathvec_eppstein_cut = pathvec_eppstein[:k]
+        
+        print()
+        print(pathvec_full_cut)
+        print(pathvec_eppstein_cut)
+
+        self.assertEqual(pathvec_eppstein_cut,pathvec_full_cut)
 
     # edited
     def test_eppstein_waterman_example(self):
@@ -205,28 +184,31 @@ class TestKShortest(unittest.TestCase):
         pathvec_full_cut = pathvec_full[:10]
         self.assertEqual(pathvec_eppstein,pathvec_full_cut)
 
-    # def test_ext_dijkstra_waterman_example(self):
-    #     #Example from Waterman and Byres (10.1016/0025-5564(85)90096-3) 
-    #     val = next_best_k_paths_dijkstra(self.graph,"A","I",2)
-    #     print(val)
-    #     ref = [(['A', 'C', 'F', 'H', 'I'], 13), (['A', 'B', 'D', 'G', 'I'], 14)]
-    #     self.assertEqual(ref,val)
+    def test_eppstein_ising_graphs(self):
+        k = 10 # Number of paths to consider
 
-    # def test_rnd_graph_ext_dijkstra(self):
-    #     n = 10
-    #     p = 0.5
-    #     k = 10 # Number of paths to consider
+        g_n_5 = nx.read_graphml("epsnet/IsingModel/ising_n_5.gml")
+        g_n_10 = nx.read_graphml("epsnet/IsingModel/ising_n_10.gml")
+        g_n_20 = nx.read_graphml("epsnet/IsingModel/ising_n_20.gml")
 
-    #     for i in range(100):
-    #         g_rand = generate_random_graph(n, p)
+        draw_graph(g_n_5)
+        plt.show()
 
-    #         # Get all available paths
-    #         pathvec = list(nx.all_simple_paths(g_rand, 0, n-1))
-    #         weightvec = [(x, nx.path_weight(g_rand, x, weight="weight"))
-    #                     for x in pathvec]
-    #         pathvec_full = sorted(weightvec, key=lambda x:(x[1],tuple(x[0])))
-            
-    #         pathvec_eppstein = next_best_k_paths_dijkstra(g_rand,0,9,k)
+        gl = [g_n_5, g_n_10, g_n_20]
 
-    #         pathvec_full_cut = pathvec_full[:k]
-    #         self.assertEqual(pathvec_eppstein,pathvec_full_cut)
+        # Get all available paths
+        # for g in gl:
+        g = g_n_5
+        pathvec = list(nx.all_simple_paths(g, 's', 't'))
+        weightvec = [(x, nx.path_weight(g, x, weight="weight")) for x in pathvec]
+        pathvec_full = sorted(weightvec, key=lambda x:(x[1],tuple(x[0])))
+    
+        pathvec_eppstein = eppstein.k_shortest_paths(g,'s','t',k)
+
+        pathvec_full.sort(key=custom_key)
+        pathvec_eppstein.sort(key=custom_key)
+
+        pathvec_full_cut = pathvec_full[:k]
+        pathvec_eppstein_cut = pathvec_eppstein[:k]
+
+        self.assertEqual(pathvec_eppstein_cut,pathvec_full_cut)
