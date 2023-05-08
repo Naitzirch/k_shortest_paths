@@ -2,6 +2,7 @@ import unittest
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
+import time
 
 import eppstein
 from epsnet.graph import generate_random_graph
@@ -119,7 +120,7 @@ class TestKShortest(unittest.TestCase):
         p = 0.5
         k = 10 # Number of paths to consider
 
-        # lines = open("g_rand2", "r")
+        # lines = open("random/g_rand2", "r")
         # g_rand = nx.parse_edgelist(lines, create_using=nx.DiGraph(), nodetype=int)
         # lines.close()
         g_rand = generate_random_graph(n, p)
@@ -187,28 +188,49 @@ class TestKShortest(unittest.TestCase):
     def test_eppstein_ising_graphs(self):
         k = 10 # Number of paths to consider
 
-        g_n_5 = nx.read_graphml("epsnet/IsingModel/ising_n_5.gml")
-        g_n_10 = nx.read_graphml("epsnet/IsingModel/ising_n_10.gml")
-        g_n_20 = nx.read_graphml("epsnet/IsingModel/ising_n_20.gml")
+        #g = nx.read_graphml("epsnet/IsingModel/ising_n_5.gml")
+        g = nx.read_graphml("epsnet/IsingModel/ising_n_10.gml")
+        #g_n_20 = nx.read_graphml("epsnet/IsingModel/ising_n_20.gml")
 
-        draw_graph(g_n_5)
-        plt.show()
-
-        gl = [g_n_5, g_n_10, g_n_20]
+        #gl = [g_n_5, g_n_10, g_n_20]
 
         # Get all available paths
         # for g in gl:
-        g = g_n_5
+        # g = nx.read_graphml("epsnet/IsingModel/ising_nsites_2_npoints_4.gml")
+        # draw_graph(g)
+        # plt.show()
+        
+
+        ##############################
+        st = time.time()
         pathvec = list(nx.all_simple_paths(g, 's', 't'))
         weightvec = [(x, nx.path_weight(g, x, weight="weight")) for x in pathvec]
         pathvec_full = sorted(weightvec, key=lambda x:(x[1],tuple(x[0])))
+        et = time.time()
+        elapsed = et - st
     
-        pathvec_eppstein = eppstein.k_shortest_paths(g,'s','t',k)
-
         pathvec_full.sort(key=custom_key)
-        pathvec_eppstein.sort(key=custom_key)
-
         pathvec_full_cut = pathvec_full[:k]
+
+        with open(r'random/pathvec_n5.txt', 'w') as fp:
+            fp.write("%i\n" % elapsed)
+            for line in pathvec_full_cut:
+                fp.write(f"{line}\n")
+        ##############################
+
+        #############################
+        st = time.time()
+        pathvec_eppstein = eppstein.k_shortest_paths(g,'s','t',k)
+        et = time.time()
+        elapsed = et - st
+
+        pathvec_eppstein.sort(key=custom_key)
         pathvec_eppstein_cut = pathvec_eppstein[:k]
+
+        with open(r'random/eppstein_n5.txt', 'w') as fp:
+            fp.write("%i\n" % elapsed)
+            for line in pathvec_eppstein_cut:
+                fp.write(f"{line}\n")
+        ##############################
 
         self.assertEqual(pathvec_eppstein_cut,pathvec_full_cut)

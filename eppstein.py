@@ -20,6 +20,8 @@ import math
 import copy
 import heapq
 import networkx as nx
+from epsnet.utils import draw_graph
+import matplotlib.pyplot as plt
 
 
 class STCedge:
@@ -30,8 +32,8 @@ class STCedge:
         self.strc = attr['sidetrackCost']
     def __lt__(self, other):
         return self.strc < other.strc
-    # def __str__(self):
-    #     return f"{self.strc}"
+    def __str__(self):
+        return f"{self.strc}"
     def __repr__(self):
         return f"STCedge({self.strc})"
         #return f'STCedge(\'{self.tail}\', \'{self.head}\' {self.attr})'
@@ -419,6 +421,8 @@ def k_shortest_paths(G, src, dst, k):
     P = nx.DiGraph()
     Proot = prepare_and_augmentP(P, H_G_dict, src) # results in a graph of STCedge elements
     # P is now the completed path graph P(G), its root is returned by the function above
+
+    print(nx.is_directed_acyclic_graph(P))
 
     # Lastly, P(G) will need to be transformed into a 4-heap H(G), so that the nodes
     # in H(G) represent paths in G. H(G) is constructed by forming a node for each path in
