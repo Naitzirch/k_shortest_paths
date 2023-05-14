@@ -147,6 +147,12 @@ def make_unique(Hout):
 def parent_ix(ix):
     return (ix - 1) // 2
 
+def mark_path_above(h, ix):
+    while ix:   # update the rest of the path above inserted element
+        parent_ix = parent_ix(ix)
+        make_unique(h[parent_ix])
+        ix = parent_ix
+
 def sift_towards_root(h, ix):
     current = h[ix]
     while ix:   # stop when ix is 0, the root
@@ -156,10 +162,7 @@ def sift_towards_root(h, ix):
             break
         make_unique(parent)
         h[parent_ix], h[ix], ix = current, parent, parent_ix
-    while ix:   # update the rest of the path above inserted element
-        parent_ix = parent_ix(ix)
-        make_unique(h[parent_ix])
-        ix = parent_ix
+    mark_path_above(ix)
 
 # push Hout element onto heap h
 # mark all root elements that are updated by swap operations with a unique identifier
@@ -168,6 +171,45 @@ def heappush(h, Hout):
         raise Exception("Hout root cannot be None")
     h.append(Hout)
     sift_towards_root(h, len(h)-1)
+
+def minHeapify(h, i):
+    l = 2*i + 1
+    r = 2*i + 2
+    min = 0
+    if l < len(h) and h[l] < h[i]:
+        min = l
+    else:
+        min = i
+    if r < len(h) and h[r] < h[min]:
+        min = r
+    
+    if min != i:
+        h[min], h[i] = h[i], h[min]
+        minHeapify(h, min)
+        return
+    
+
+def heapify(h):
+    for i in range((len(h)//2) - 1, -1, -1):
+        minHeapify(h, i)
+
+def merge(h1, h2): # merge h2 into h1, mark all updated paths
+# First mark all paths that will be affected
+
+    # number of leaves of h1
+    n_leaves_h1 = len(h1) - (parent_ix(len(h1) - 1) + 1)
+    # We cannot update more paths than there are leaves
+    updated_paths = min(n_leaves_h1, (len(h2)+1)//2)
+
+    # iterate over the number of nodes to which a child will be appended, starting from the first node that will get a child
+    s = parent_ix(len(h1)-1)
+    for i in range(updated_paths):
+        i = i + s
+        child = i*2 + 1 # we want to mark i itself as well
+        mark_path_above(h1, child)
+    
+# Then append h2 to h1 and restore the heap structure
+
 
 
 #######################
@@ -193,6 +235,24 @@ def calc_H_G_next(R, pred, prevNode):
                 heapq.heapify(h)
             
             calc_H_G_next(R, pred, v)
+
+# BFS to create H_G heaps for each vertex v
+# ordered by the value of the roots of each Hout heap on the shortest path from v to t
+def calc_H_G_BFS(R, pred, dst):
+    queue = [dst]
+    while queue:
+        m = queue.pop(0)
+        for nbr in R.adj[m]:
+            if nbr in pred[m]:
+                h = copy.copy(R.nodes[m]['H_G'])
+                if R.nodes[nbr]['H_G'] == []:
+                    Hout_nbr = R.nodes[nbr]['Hout']
+                    if Hout_nbr.root != None:
+                        heappush(h, Hout_nbr)
+                    queue.append(nbr)
+                else:
+                    merge(R.nodes[nbr]['H_G'], h) # merge h into H_G of nbr
+                
                 
 # For each vertex v in G, creates a heap H_G of all Hout heaps on the path from v to t
 # ordered by value of the roots of each Hout heap
@@ -205,7 +265,7 @@ def calc_H_G(G, pred, dst):
     if Hout_dst.root != None:
         heappush(h, Hout_dst)
     
-    calc_H_G_next(R, pred, dst)
+    calc_H_G_BFS(R, pred, dst)
 
     return R.reverse(copy=True)
 
