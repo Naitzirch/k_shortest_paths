@@ -47,9 +47,6 @@ class STCedge:
         if not(isinstance(other, STCedge)): return True
         if not(self.__class__ == other.__class__): return True
         return not(self.__dict__ == other.__dict__)
-    
-    def special_hash(self):
-        return (self.tail, self.head, self.attr['weight'], self.strc)
 
 # Heap of the out edges of v
 class Hout:
@@ -137,12 +134,11 @@ def calc_sidetrack_cost(G, dist):
 
 #######################
 # keep track of how many times an edge has been copied and made unique
-edge_id_dict = {}
+GLOB_edge_unique_copy_counter = 0
 
 def make_unique(Hout):
-    Hid = edge_id_dict[Hout.root.special_hash()]
-    Hout.root.mark = Hid
-    Hid += 1
+    Hout.root.mark = GLOB_edge_unique_copy_counter
+    GLOB_edge_unique_copy_counter += 1
     return
 
 '''H_G heap operations'''
@@ -170,7 +166,6 @@ def sift_towards_root(h, ix):
 def heappush(h, Hout):
     if Hout.root == None:
         raise Exception("Hout root cannot be None")
-    edge_id_dict[Hout.root.special_hash()] = 1
     h.append(Hout)
     sift_towards_root(h, len(h)-1)
 
@@ -189,7 +184,7 @@ def calc_H_G_next(R, pred, prevNode):
             if R.nodes[v]['H_G'] == []:
                 # if H_G still empty: add H_G of previous node and Hout of v
                 if Hout_v.root != None:
-                    heapq.heappush(h, Hout_v)
+                    heappush(h, Hout_v)
                 R.nodes[v]['H_G'] = h
             else:
                 # if H_G was already updated through another path, only add the additional
