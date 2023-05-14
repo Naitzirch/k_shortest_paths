@@ -45,20 +45,44 @@ def draw_system_graph(graph,ax=None):
     """
     f, axvec = plt.subplots(1,1)
     pos = nx.multipartite_layout(graph)
+    labels = nx.get_edge_attributes(graph,'weight')
+    new_labels = {}
+    for k, v in labels.items():
+        new_labels[k] = round(v, 2)
+
+    pred, dist = nx.dijkstra_predecessor_and_distance(graph.reverse(copy=True), 't')
+    #get edges in pred
+    cedges = []
+    for u in pred:
+        for v in pred[u]:
+            cedges.append((u, v))
+
+    edge_color = []
+    for e in graph.edges():
+        if e in cedges:
+            edge_color.append('red')
+        else:
+            edge_color.append('black')
+
     nx.draw_networkx(graph, pos, ax=ax,with_labels=True)
+    nx.draw_networkx_edges(graph, pos, edge_color=edge_color)
+    # nx.draw_networkx_edge_labels(graph, pos, ax=ax,edge_labels=new_labels)
 
 class TestKShortest(unittest.TestCase):
 
     def test_eppstein_ising_graphs(self):
         k = 10 # Number of paths to consider
 
-        #g = nx.read_graphml("epsnet/IsingModel/ising_n_5.gml")
-        # g = nx.read_graphml("epsnet/IsingModel/ising_n_10.gml")
-        #g = nx.read_graphml("epsnet/IsingModel/ising_n_20.gml")
-        g = nx.read_graphml("epsnet/IsingModel/ising_nsites_2_npoints_4.gml")
+        #g = nx.read_graphml("epsnet/IsingModel/ising_nsites_2_npoints_4.gml")
 
-        # draw_graph(g)
-        # plt.show()
+        g = nx.read_graphml("epsnet/IsingModel/ising_nsites_3_npoints_4.gml")
+        #g = nx.read_graphml("epsnet/IsingModel/ising_nsites_4_npoints_4.gml")
+        #g = nx.read_graphml("epsnet/IsingModel/ising_nsites_5_npoints_4.gml")
+        #g = nx.read_graphml("epsnet/IsingModel/ising_nsites_5_npoints_6.gml")
+        #g = nx.read_graphml("epsnet/IsingModel/ising_nsites_5_npoints_10.gml")
+        #g = nx.read_graphml("epsnet/IsingModel/ising_nsites_5_npoints_20.gml")
+
+        
         
         set_subset(g, 10)
         draw_system_graph(g)
