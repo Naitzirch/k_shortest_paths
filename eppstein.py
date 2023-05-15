@@ -417,18 +417,18 @@ def pop_from_H(root, H):
     return v, new_root
 
 
-def get_paths_between(pred, head, tail, path=[]):
-        path = path + [head]
-        if head == tail:
-            return [path]
-        if pred[head] == []:
-            return []
-        paths = []
-        for node in pred[head]:
-            newpaths = get_paths_between(pred, node, tail, path)
-            for newpath in newpaths:
-                paths.append(newpath)
-        return paths
+def get_paths_between(head, tail, pred, path=[]):
+    path = path + [head]
+    if head == tail:
+        return [path]
+    if pred[head] == []:
+        return []
+    paths = []
+    for node in pred[head]:
+        newpaths = get_paths_between(node, tail, pred, path)
+        for newpath in newpaths:
+            paths.append(newpath)
+    return paths
 
 # for each pair of subsequent STCedges in the sequence, we want to find all
 # paths that connect them, consisting of non-STCedges only.
@@ -447,10 +447,10 @@ def get_all_paths_for_sequence(p, sd, pred, dst):
         # find all shortest paths from e.head to next(e).tail
         if i < len(seq) - 1:
             new_all_paths = []
-            m = get_paths_between(pred, seq[i].head, seq[i+1].tail)
+            m = get_paths_between(seq[i].head, seq[i+1].tail, pred)
             for l in all_paths:
                 for n in m:
-                    new_all_paths.append(copy.copy(l) + n)
+                    new_all_paths.append(l + n)
             all_paths = new_all_paths
 
     # cost of the entire path
