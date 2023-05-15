@@ -75,8 +75,8 @@ class TestKShortest(unittest.TestCase):
 
         #g = nx.read_graphml("epsnet/IsingModel/ising_nsites_2_npoints_4.gml")
 
-        g = nx.read_graphml("epsnet/IsingModel/ising_nsites_3_npoints_4.gml")
-        #g = nx.read_graphml("epsnet/IsingModel/ising_nsites_4_npoints_4.gml")
+        #g = nx.read_graphml("epsnet/IsingModel/ising_nsites_3_npoints_4.gml")
+        g = nx.read_graphml("epsnet/IsingModel/ising_nsites_4_npoints_4.gml")
         #g = nx.read_graphml("epsnet/IsingModel/ising_nsites_5_npoints_4.gml")
         #g = nx.read_graphml("epsnet/IsingModel/ising_nsites_5_npoints_6.gml")
         #g = nx.read_graphml("epsnet/IsingModel/ising_nsites_5_npoints_10.gml")

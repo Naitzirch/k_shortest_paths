@@ -34,15 +34,18 @@ class STCedge:
     def __lt__(self, other):
         return self.strc < other.strc
     def __str__(self):
-        return f'STCedge(\'{self.tail}\', \'{self.head}\' {self.strc})'
+        return f'STCedge(\'{self.tail}\', \'{self.head}\' {self.strc}, \'{self.mark}\')'
         #return f"{self.strc}"
     def __repr__(self):
         #return f"STCedge({self.strc})"
-        return f'STCedge(\'{self.tail}\', \'{self.head}\' {self.strc})'
+        return f'STCedge(\'{self.tail}\', \'{self.head}\' {self.strc}, \'{self.mark}\')'
     def __hash__(self):
         return hash((self.tail, self.head, self.attr['weight'], self.strc, self.mark))
-    def __eq__(self, other) : 
-        return self.__dict__ == other.__dict__
+    def __eq__(self, other):
+        if isinstance(other, STCedge) and self.__class__ == other.__class__:
+            return self.__dict__ == other.__dict__
+        else:
+            return False
     def __ne__(self, other):
         if not(isinstance(other, STCedge)): return True
         if not(self.__class__ == other.__class__): return True
@@ -137,8 +140,9 @@ def calc_sidetrack_cost(G, dist):
 GLOB_edge_unique_copy_counter = 0
 
 def make_unique(Hout):
-    Hout.root.mark = GLOB_edge_unique_copy_counter
+    global GLOB_edge_unique_copy_counter
     GLOB_edge_unique_copy_counter += 1
+    Hout.root.mark = GLOB_edge_unique_copy_counter
     return
 
 '''H_G heap operations'''
@@ -149,20 +153,20 @@ def parent_ix(ix):
 
 def mark_path_above(h, ix):
     while ix:   # update the rest of the path above inserted element
-        parent_ix = parent_ix(ix)
-        make_unique(h[parent_ix])
-        ix = parent_ix
+        p_ix = parent_ix(ix)
+        make_unique(h[p_ix])
+        ix = p_ix
 
 def sift_towards_root(h, ix):
     current = h[ix]
     while ix:   # stop when ix is 0, the root
-        parent_ix = parent_ix(ix)
-        parent = h[parent_ix]
+        p_ix = parent_ix(ix)
+        parent = h[p_ix]
         if min(parent, current) is parent:
             break
         make_unique(parent)
-        h[parent_ix], h[ix], ix = current, parent, parent_ix
-    mark_path_above(ix)
+        h[p_ix], h[ix], ix = current, parent, p_ix
+    mark_path_above(h, ix)
 
 # push Hout element onto heap h
 # mark all root elements that are updated by swap operations with a unique identifier
@@ -172,69 +176,7 @@ def heappush(h, Hout):
     h.append(Hout)
     sift_towards_root(h, len(h)-1)
 
-def minHeapify(h, i):
-    l = 2*i + 1
-    r = 2*i + 2
-    min = 0
-    if l < len(h) and h[l] < h[i]:
-        min = l
-    else:
-        min = i
-    if r < len(h) and h[r] < h[min]:
-        min = r
-    
-    if min != i:
-        h[min], h[i] = h[i], h[min]
-        minHeapify(h, min)
-        return
-    
-
-def heapify(h):
-    for i in range((len(h)//2) - 1, -1, -1):
-        minHeapify(h, i)
-
-def merge(h1, h2): # merge h2 into h1, mark all updated paths
-# First mark all paths that will be affected
-
-    # number of leaves of h1
-    n_leaves_h1 = len(h1) - (parent_ix(len(h1) - 1) + 1)
-    # We cannot update more paths than there are leaves
-    updated_paths = min(n_leaves_h1, (len(h2)+1)//2)
-
-    # iterate over the number of nodes to which a child will be appended, starting from the first node that will get a child
-    s = parent_ix(len(h1)-1)
-    for i in range(updated_paths):
-        i = i + s
-        child = i*2 + 1 # we want to mark i itself as well
-        mark_path_above(h1, child)
-    
-# Then append h2 to h1 and restore the heap structure
-
-
-
 #######################
-
-
-# CHANGE THIS TO A BFS!!!
-# DFS to create H_G heaps for each vertex v
-# ordered by the value of the roots of each Hout heap on the shortest path from v to t
-def calc_H_G_next(R, pred, prevNode):
-    for v in R.adj[prevNode]:
-        if prevNode in pred[v]:
-            h = copy.copy(R.nodes[prevNode]['H_G'])
-            Hout_v = R.nodes[v]['Hout']
-            if R.nodes[v]['H_G'] == []:
-                # if H_G still empty: add H_G of previous node and Hout of v
-                if Hout_v.root != None:
-                    heappush(h, Hout_v)
-                R.nodes[v]['H_G'] = h
-            else:
-                # if H_G was already updated through another path, only add the additional
-                # H_G of the current path by merging the heaps
-                h = R.nodes[v]['H_G'] = R.nodes[v]['H_G'] + h
-                heapq.heapify(h)
-            
-            calc_H_G_next(R, pred, v)
 
 # BFS to create H_G heaps for each vertex v
 # ordered by the value of the roots of each Hout heap on the shortest path from v to t
@@ -243,17 +185,24 @@ def calc_H_G_BFS(R, pred, dst):
     while queue:
         m = queue.pop(0)
         for nbr in R.adj[m]:
-            if nbr in pred[m]:
-                h = copy.copy(R.nodes[m]['H_G'])
+            if m in pred[nbr]:
+                h = copy.deepcopy(R.nodes[m]['H_G'])
                 if R.nodes[nbr]['H_G'] == []:
+                    # if H_G still empty: add H_G of previous node and Hout of nbr
                     Hout_nbr = R.nodes[nbr]['Hout']
                     if Hout_nbr.root != None:
                         heappush(h, Hout_nbr)
+                    R.nodes[nbr]['H_G'] = h
                     queue.append(nbr)
                 else:
-                    merge(R.nodes[nbr]['H_G'], h) # merge h into H_G of nbr
-                
-                
+                    # if H_G was already updated through another path, only add the additional
+                    # H_G of the current path by merging the heaps
+                    for Hout in h:
+                        # will take O(log(N/2) * N/2), can we do better? O(N/2)? using merge/heapify?
+                        make_unique(Hout)
+                        heappush(R.nodes[nbr]['H_G'], Hout)
+
+
 # For each vertex v in G, creates a heap H_G of all Hout heaps on the path from v to t
 # ordered by value of the roots of each Hout heap
 def calc_H_G(G, pred, dst):
@@ -287,7 +236,7 @@ def Hout_DFS(P, h, i, H_G_dict):
     # CROSS_EDGE
     # Add an edge from p=h[i] (that corresponds to (u, w)) to h(w) (aka h(p.head)) with weight d(h(p.head))
     # (= edge from p to H_G_dict[p][0].root)
-    h_w = H_G_dict.setdefault(h[i], False)
+    h_w = H_G_dict.get(h[i], False)
     if h_w and h_w != []:
         h_w = h_w[0].root
         X = copy.deepcopy(P)
@@ -328,7 +277,7 @@ def HoutHeap_DFS(P, h, i, H_G_dict):
     # CROSS_EDGE
     # Add an edge from p (that corresponds to (u, w)) to h(w) (aka h(p.head)) with weight d(h(p.head))
     # (= edge from p to H_G_dict[p][0].root)
-    h_w = H_G_dict.setdefault(p, False)
+    h_w = H_G_dict.get(p, False)
     if h_w and h_w != []:
         h_w = h_w[0].root
         X = copy.deepcopy(P)
