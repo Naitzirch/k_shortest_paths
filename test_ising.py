@@ -65,7 +65,7 @@ def draw_system_graph(graph,ax=None):
             edge_color.append('black')
 
     nx.draw_networkx(graph, pos, ax=ax,with_labels=True)
-    nx.draw_networkx_edges(graph, pos, edge_color=edge_color)
+    nx.draw_networkx_edges(graph, pos, width=2.0, edge_color=edge_color)
     # nx.draw_networkx_edge_labels(graph, pos, ax=ax,edge_labels=new_labels)
 
 class TestKShortest(unittest.TestCase):

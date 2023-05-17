@@ -318,7 +318,7 @@ class EHeapElement:
     # def __str__(self):
     #     return f"{self.seq}"
     def __repr__(self):
-        return f"EHE({self.seq}, { self.weight})"
+        return f"EHE({self.weight}'\t'{self.seq})"
     def __hash__(self):
         return hash((tuple(self.seq), self.weight))
     def __eq__(self, other) : 
@@ -351,12 +351,12 @@ def P_to_Heap(H, P, node):
         l_s = l[1].seq
         w_t = l[2]
 
+        # new sequence (already added but we need to construct the parent)
+        new_seq = l_s + [l_t]
+        p = EHeapElement(new_seq, w_t)
+
         for child in P.adj[l_t]:
                 if P.adj[l_t][child]['cross_edge'] == True:
-                    # new sequence (already added but we need to construct the parent)
-                    new_seq = l_s + [l_t]
-                    p = EHeapElement(new_seq, w_t)
-
                     # handle child
                     t_w = w_t + P.adj[l_t][child]['weight'] # total weight
                     c = EHeapElement(new_seq + [child], t_w)
@@ -369,7 +369,7 @@ def P_to_Heap(H, P, node):
                 else:
                     t_w = w_t + P.adj[l_t][child]['weight'] # total weight
                     c = EHeapElement(l_s + [child], t_w )   # add child to sequence
-                    H.add_edge(l[1], c)
+                    H.add_edge(p, c)
                     queue.append( (child, l[1], t_w) )
     return Er
 
