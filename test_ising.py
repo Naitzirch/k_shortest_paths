@@ -76,13 +76,21 @@ class TestKShortest(unittest.TestCase):
         #g = nx.read_graphml("epsnet/IsingModel/ising_nsites_2_npoints_4.gml")
 
         #g = nx.read_graphml("epsnet/IsingModel/ising_nsites_3_npoints_4.gml")
-        g = nx.read_graphml("epsnet/IsingModel/ising_nsites_4_npoints_4.gml")
+        #g = nx.read_graphml("epsnet/IsingModel/ising_nsites_4_npoints_4.gml")
         #g = nx.read_graphml("epsnet/IsingModel/ising_nsites_5_npoints_4.gml")
         #g = nx.read_graphml("epsnet/IsingModel/ising_nsites_5_npoints_6.gml")
         #g = nx.read_graphml("epsnet/IsingModel/ising_nsites_5_npoints_10.gml")
-        #g = nx.read_graphml("epsnet/IsingModel/ising_nsites_5_npoints_20.gml")
+        g = nx.read_graphml("epsnet/IsingModel/ising_nsites_5_npoints_20.gml")
 
         
+        # perturbated
+        #g = nx.read_graphml("epsnet/IsingModel/perturbated/p_ising_nsites_2_npoints_4.gml")
+        #g = nx.read_graphml("epsnet/IsingModel/perturbated/p_ising_nsites_3_npoints_4.gml")
+        #g = nx.read_graphml("epsnet/IsingModel/perturbated/p_ising_nsites_4_npoints_4.gml")
+        #g = nx.read_graphml("epsnet/IsingModel/perturbated/p_ising_nsites_5_npoints_4.gml")
+        #g = nx.read_graphml("epsnet/IsingModel/perturbated/p_ising_nsites_5_npoints_6.gml")
+        #g = nx.read_graphml("epsnet/IsingModel/perturbated/p_ising_nsites_5_npoints_10.gml")
+        #g = nx.read_graphml("epsnet/IsingModel/perturbated/p_ising_nsites_5_npoints_20.gml")
         
         set_subset(g, 10)
         draw_system_graph(g)
@@ -94,9 +102,10 @@ class TestKShortest(unittest.TestCase):
         pathvec_full = sorted(weightvec, key=lambda x:(x[1],tuple(x[0])))
     
         pathvec_full.sort(key=custom_key)
+        pathvec_full = [(x, round(y, 7)) for x, y in pathvec_full]
         pathvec_full_cut = pathvec_full[:k]
 
-        with open(r'random/pathvec_n5.txt', 'w') as fp:
+        with open(r'exclude/output/brutefor_n5.txt', 'w') as fp:
             for line in pathvec_full_cut:
                 fp.write(f"{line}\n")
         ##############################
@@ -105,9 +114,10 @@ class TestKShortest(unittest.TestCase):
         pathvec_eppstein = eppstein.k_shortest_paths(g,'s','t',k)
 
         pathvec_eppstein.sort(key=custom_key)
+        pathvec_eppstein = [(x, round(y, 7)) for x, y in pathvec_eppstein]
         pathvec_eppstein_cut = pathvec_eppstein[:k]
 
-        with open(r'random/eppstein_n5.txt', 'w') as fp:
+        with open(r'exclude/output/eppstein_n5.txt', 'w') as fp:
             for line in pathvec_eppstein_cut:
                 fp.write(f"{line}\n")
         ##############################
