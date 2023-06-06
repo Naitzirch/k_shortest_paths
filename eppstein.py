@@ -198,7 +198,7 @@ def calc_H_G_BFS(R, pred, dst):
                     # if H_G was already updated through another path, only add the additional
                     # H_G of the current path by merging the heaps
                     for Hout in h:
-                        # will take O(log(N/2) * N/2), can we do better? O(N/2)? using merge/heapify?
+                        # will take O(N/2(log(N/2) + log(N))), can we do better? O(N/2)? using merge/heapify?
                         make_unique(Hout)
                         heappush(R.nodes[nbr]['H_G'], Hout)
 
@@ -219,32 +219,32 @@ def calc_H_G(G, pred, dst):
     return R.reverse(copy=True)
 
 
-def Hout_DFS(P, h, i, H_G_dict):
+def Hout_DFS(P, h, i, G):
     if 2*i+1 < len(h):
         X = copy.deepcopy(P)
         P.add_edges_from([ (h[i], h[2*i+1], {'weight': (h[2*i+1].strc - h[i].strc), 'cross_edge': False}) ]) # For edge (u, v) in D(G), add as edge weight: d(v) - d(u)
         if not nx.is_directed_acyclic_graph(P):
             print(False)
-        Hout_DFS(P, h, 2*i+1, H_G_dict)
+        Hout_DFS(P, h, 2*i+1, G)
     if 2*i+2 < len(h):
         X = copy.deepcopy(P)
         P.add_edges_from([ (h[i], h[2*i+2], {'weight': (h[2*i+2].strc - h[i].strc), 'cross_edge': False}) ])
         if not nx.is_directed_acyclic_graph(P):
             print(False)
-        Hout_DFS(P, h, 2*i+2, H_G_dict)
+        Hout_DFS(P, h, 2*i+2, G)
 
     # CROSS_EDGE
     # Add an edge from p=h[i] (that corresponds to (u, w)) to h(w) (aka h(p.head)) with weight d(h(p.head))
     # (= edge from p to H_G_dict[p][0].root)
-    h_w = H_G_dict.get(h[i], False)
-    if h_w and h_w != []:
+    h_w = G.nodes[h[i].head]['H_G']
+    if h_w != []:
         h_w = h_w[0].root
         X = copy.deepcopy(P)
         P.add_edges_from([ (h[i], h_w, {'weight': h_w.strc, 'cross_edge': True}) ])
         if not nx.is_directed_acyclic_graph(P):
             print(False)
 
-def HoutHeap_DFS(P, h, i, H_G_dict):
+def HoutHeap_DFS(P, h, i, G):
     # Add the two edges leading to other Hout heaps
     p = h[i].root
 
@@ -255,7 +255,7 @@ def HoutHeap_DFS(P, h, i, H_G_dict):
         P.add_edges_from([ (p, c1, {'weight': (c1.strc - p.strc), 'cross_edge': False}) ]) # For edge (u, v) in D(G), add as edge weight: d(v) - d(u)
         if not nx.is_directed_acyclic_graph(P):
             print(False)
-        HoutHeap_DFS(P, h, 2*i+1, H_G_dict)
+        HoutHeap_DFS(P, h, 2*i+1, G)
 
     # Right Hout child
     if 2*i+2 < len(h):
@@ -264,7 +264,7 @@ def HoutHeap_DFS(P, h, i, H_G_dict):
         P.add_edges_from([ (p, c2, {'weight': (c2.strc - p.strc), 'cross_edge': False}) ])
         if not nx.is_directed_acyclic_graph(P):
             print(False)
-        HoutHeap_DFS(P, h, 2*i+2, H_G_dict)
+        HoutHeap_DFS(P, h, 2*i+2, G)
 
     # Add its own (STCedge) heap (inner child)
     if h[i].heap != []:
@@ -272,13 +272,13 @@ def HoutHeap_DFS(P, h, i, H_G_dict):
         P.add_edges_from([ (h[i].root, h[i].heap[0], {'weight': (h[i].heap[0].strc - h[i].root.strc), 'cross_edge': False}) ])
         if not nx.is_directed_acyclic_graph(P):
             print(False)
-        Hout_DFS(P, h[i].heap, 0, H_G_dict)
+        Hout_DFS(P, h[i].heap, 0, G)
 
     # CROSS_EDGE
     # Add an edge from p (that corresponds to (u, w)) to h(w) (aka h(p.head)) with weight d(h(p.head))
     # (= edge from p to H_G_dict[p][0].root)
-    h_w = H_G_dict.get(p, False)
-    if h_w and h_w != []:
+    h_w = G.nodes[p.head]['H_G']
+    if h_w != []:
         h_w = h_w[0].root
         X = copy.deepcopy(P)
         P.add_edges_from([ (p, h_w, {'weight': h_w.strc, 'cross_edge': True}) ])
@@ -286,25 +286,26 @@ def HoutHeap_DFS(P, h, i, H_G_dict):
             print(False)
 
 # Transform all the heaps into nodes in 1 digraph
-def prepare_and_augmentP(P, H_G_dict, src):
+def prepare_and_augmentP(P, G, src):
 
     # augmentation: Add a root node
     empty_seq = STCedge(None, src, {'weight': 0, 'sidetrackCost': 0})
     # and connect it to h(src)
-    h_s = H_G_dict[empty_seq]
+    h_s = G.nodes[src]['H_G']
     if h_s == []:
         P.add_node(empty_seq)
+        return empty_seq
     else:
         h_sr = h_s[0].root
         P.add_edges_from([ (empty_seq, h_sr, {'weight': h_sr.strc, 'cross_edge': False}) ])
 
-    # iterate over H_G
-    for l in H_G_dict: # last sidetrack edge in sequence for path p
+    # iterate over all nodes in G because all nodes are in the shortest path tree
+    for l in G.nodes: # last sidetrack edge in sequence for path p
         # H_G = heap of Hout objects
-        H_G = H_G_dict[l]
+        H_G = G.nodes[l]['H_G']
         # Traverse the Hout heap, add edges from the root elements to the lower roots
         if H_G != []:
-            HoutHeap_DFS(P, H_G, 0, H_G_dict)
+            HoutHeap_DFS(P, H_G, 0, G)
     
     return empty_seq
 
@@ -324,6 +325,8 @@ class EHeapElement:
     def __eq__(self, other) : 
         return self.__dict__ == other.__dict__
     def __ne__(self, other):
+        if not(isinstance(other, EHeapElement)): return True
+        if not(self.__class__ == other.__class__): return True
         return not(self.__dict__ == other.__dict__)
 
 
@@ -482,12 +485,6 @@ def k_shortest_paths(G, src, dst, k):
 
     # Calculate sidetrack costs for every edge and add them as attribute to the edge
     calc_sidetrack_cost(G, dist)
-    
-    # Create a path tree with sidetrack(p) sequences S
-    # where the parent of any path p is prefpath(p)
-    # This tree will be heap-ordered by Lemma 3: l(p) >= l(prefpath(p))
-    # (the empty sequence will be the root)
-    pathTree = sidetrackEdge_path_tree(G, pred, src)
 
     # Calculate Hout(v) for every vertex and add the resulting heap as attribute to v
     for v in G.nodes():
@@ -497,17 +494,11 @@ def k_shortest_paths(G, src, dst, k):
     # where every root also points to the rest of its original Hout heap
     G = calc_H_G(G, pred, dst) # For every vertex H_G is added as an attribute
 
-    # Retrieve H_G(head(lastsidetrack(p))) for each node p in pathTree
-    # such that we can build P(G)
-    H_G_dict = {}
-    for p in pathTree.nodes: # p is of the form STCedge()
-        H_G_dict[p] = G.nodes[p.head]['H_G']
-
     P = nx.DiGraph()
-    Proot = prepare_and_augmentP(P, H_G_dict, src) # results in a graph of STCedge elements
+    Proot = prepare_and_augmentP(P, G, src) # results in a graph of STCedge elements
     # P is now the completed path graph P(G), its root is returned by the function above
 
-    print(nx.is_directed_acyclic_graph(P))
+    # print(nx.is_directed_acyclic_graph(P))
 
     # Lastly, P(G) will need to be transformed into a 4-heap H(G), so that the nodes
     # in H(G) represent paths in G. H(G) is constructed by forming a node for each path in
@@ -523,15 +514,34 @@ def k_shortest_paths(G, src, dst, k):
 
     # To find the k shortest paths, pop at most k times from H and append to list
     # We will convert STCedge sequences to a list of paths after each pop
+    last = 0
     while len(paths) < k:
-        p, Hroot = pop_from_H(Hroot, H)
 
+        if Hroot is None:
+            if len(paths) < k:
+                print(f"No more than {len(paths)} paths")
+            break
+
+        p, Hroot = pop_from_H(Hroot, H)
         paths += get_all_paths_for_sequence(p, sd, pred, dst)
 
         if Hroot is None:
             if len(paths) < k:
                 print(f"No more than {len(paths)} paths")
             break
+
+        while True and Hroot.weight == last: # pop all sequences with same weight, for testing purposes, can be set to False for better performance
+
+            last = Hroot.weight
+            p, Hroot = pop_from_H(Hroot, H)
+            paths += get_all_paths_for_sequence(p, sd, pred, dst)
+
+            if Hroot is None:
+                if len(paths) < k:
+                    print(f"No more than {len(paths)} paths")
+                break
+        if Hroot != None:
+            last = Hroot.weight
         
     return paths
 
