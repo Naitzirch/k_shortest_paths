@@ -221,16 +221,10 @@ def calc_H_G(G, pred, dst):
 
 def Hout_DFS(P, h, i, G):
     if 2*i+1 < len(h):
-        X = copy.deepcopy(P)
         P.add_edges_from([ (h[i], h[2*i+1], {'weight': (h[2*i+1].strc - h[i].strc), 'cross_edge': False}) ]) # For edge (u, v) in D(G), add as edge weight: d(v) - d(u)
-        if not nx.is_directed_acyclic_graph(P):
-            print(False)
         Hout_DFS(P, h, 2*i+1, G)
     if 2*i+2 < len(h):
-        X = copy.deepcopy(P)
         P.add_edges_from([ (h[i], h[2*i+2], {'weight': (h[2*i+2].strc - h[i].strc), 'cross_edge': False}) ])
-        if not nx.is_directed_acyclic_graph(P):
-            print(False)
         Hout_DFS(P, h, 2*i+2, G)
 
     # CROSS_EDGE
@@ -239,10 +233,7 @@ def Hout_DFS(P, h, i, G):
     h_w = G.nodes[h[i].head]['H_G']
     if h_w != []:
         h_w = h_w[0].root
-        X = copy.deepcopy(P)
         P.add_edges_from([ (h[i], h_w, {'weight': h_w.strc, 'cross_edge': True}) ])
-        if not nx.is_directed_acyclic_graph(P):
-            print(False)
 
 def HoutHeap_DFS(P, h, i, G):
     # Add the two edges leading to other Hout heaps
@@ -251,27 +242,18 @@ def HoutHeap_DFS(P, h, i, G):
     # Left Hout child
     if 2*i+1 < len(h):
         c1 = h[2*i+1].root
-        X = copy.deepcopy(P)
         P.add_edges_from([ (p, c1, {'weight': (c1.strc - p.strc), 'cross_edge': False}) ]) # For edge (u, v) in D(G), add as edge weight: d(v) - d(u)
-        if not nx.is_directed_acyclic_graph(P):
-            print(False)
         HoutHeap_DFS(P, h, 2*i+1, G)
 
     # Right Hout child
     if 2*i+2 < len(h):
         c2 = h[2*i+2].root
-        X = copy.deepcopy(P)
         P.add_edges_from([ (p, c2, {'weight': (c2.strc - p.strc), 'cross_edge': False}) ])
-        if not nx.is_directed_acyclic_graph(P):
-            print(False)
         HoutHeap_DFS(P, h, 2*i+2, G)
 
     # Add its own (STCedge) heap (inner child)
     if h[i].heap != []:
-        X = copy.deepcopy(P)
         P.add_edges_from([ (h[i].root, h[i].heap[0], {'weight': (h[i].heap[0].strc - h[i].root.strc), 'cross_edge': False}) ])
-        if not nx.is_directed_acyclic_graph(P):
-            print(False)
         Hout_DFS(P, h[i].heap, 0, G)
 
     # CROSS_EDGE
@@ -280,10 +262,7 @@ def HoutHeap_DFS(P, h, i, G):
     h_w = G.nodes[p.head]['H_G']
     if h_w != []:
         h_w = h_w[0].root
-        X = copy.deepcopy(P)
         P.add_edges_from([ (p, h_w, {'weight': h_w.strc, 'cross_edge': True}) ])
-        if not nx.is_directed_acyclic_graph(P):
-            print(False)
 
 # Transform all the heaps into nodes in 1 digraph
 def prepare_and_augmentP(P, G, src):
@@ -497,8 +476,6 @@ def k_shortest_paths(G, src, dst, k):
     P = nx.DiGraph()
     Proot = prepare_and_augmentP(P, G, src) # results in a graph of STCedge elements
     # P is now the completed path graph P(G), its root is returned by the function above
-
-    # print(nx.is_directed_acyclic_graph(P))
 
     # Lastly, P(G) will need to be transformed into a 4-heap H(G), so that the nodes
     # in H(G) represent paths in G. H(G) is constructed by forming a node for each path in
