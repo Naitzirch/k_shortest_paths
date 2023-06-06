@@ -80,7 +80,7 @@ class TestKShortest(unittest.TestCase):
         #g = nx.read_graphml("epsnet/IsingModel/ising_nsites_5_npoints_4.gml")
         #g = nx.read_graphml("epsnet/IsingModel/ising_nsites_5_npoints_6.gml")
         #g = nx.read_graphml("epsnet/IsingModel/ising_nsites_5_npoints_10.gml")
-        g = nx.read_graphml("epsnet/IsingModel/ising_nsites_5_npoints_20.gml")
+        #g = nx.read_graphml("epsnet/IsingModel/ising_nsites_5_npoints_20.gml")
 
         
         # perturbated
@@ -88,13 +88,13 @@ class TestKShortest(unittest.TestCase):
         #g = nx.read_graphml("epsnet/IsingModel/perturbated/p_ising_nsites_3_npoints_4.gml")
         #g = nx.read_graphml("epsnet/IsingModel/perturbated/p_ising_nsites_4_npoints_4.gml")
         #g = nx.read_graphml("epsnet/IsingModel/perturbated/p_ising_nsites_5_npoints_4.gml")
-        #g = nx.read_graphml("epsnet/IsingModel/perturbated/p_ising_nsites_5_npoints_6.gml")
+        g = nx.read_graphml("epsnet/IsingModel/perturbated/p_ising_nsites_5_npoints_6.gml")
         #g = nx.read_graphml("epsnet/IsingModel/perturbated/p_ising_nsites_5_npoints_10.gml")
         #g = nx.read_graphml("epsnet/IsingModel/perturbated/p_ising_nsites_5_npoints_20.gml")
         
-        set_subset(g, 10)
-        draw_system_graph(g)
-        plt.show()
+        #set_subset(g, 10)
+        #draw_system_graph(g)
+        #plt.show()
 
         ##############################
         pathvec = list(nx.all_simple_paths(g, 's', 't'))
