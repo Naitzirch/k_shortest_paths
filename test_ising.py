@@ -1,3 +1,5 @@
+# Code adapted from eps-net repository by Patrick Emonts 2023
+
 import unittest
 import networkx as nx
 import matplotlib.pyplot as plt

@@ -1,12 +1,8 @@
 import unittest
-import heapq
 import networkx as nx
-import matplotlib.pyplot as plt
 
 # files in same dir
 import eppstein
-import test_graph
-from epsnet.utils import draw_graph
 
 
 class TestEpp(unittest.TestCase):
@@ -89,8 +85,6 @@ class TestEpp(unittest.TestCase):
         self.GHout.nodes['s']['Hout'] = vs
         self.GHout.nodes[5]['Hout'] = v5
         self.GHout.nodes[6]['Hout'] = v6
-    
-        # self.GH_G = self.GHout.copy()
 
 
         # Second test graph
@@ -133,24 +127,6 @@ class TestEpp(unittest.TestCase):
         self.FHout.nodes[2]['Hout'] = v2
         self.FHout.nodes[3]['Hout'] = v3
 
-
-        # From test_graph.py from the epsnet repo
-        self.graph = nx.DiGraph()
-        self.graph.add_nodes_from(["A","B","C","D","E","F","G","H","I"])
-        self.graph.add_weighted_edges_from([
-            ("A","B",2),
-            ("A","C",0),
-            ("B","D",2),
-            ("B","E",6),
-            ("C","E",8),
-            ("C","F",3),
-            ("D","G",5),
-            ("E","G",3),
-            ("E","H",4),
-            ("F","H",4),
-            ("G","I",5),
-            ("H","I",6),
-            ])
 
     def tearDown(self):
         pass
@@ -214,54 +190,6 @@ class TestEpp(unittest.TestCase):
         self.assertEqual(1,v0[0].root.strc)
         self.assertEqual([],v0[0].heap)
         self.assertEqual(v2,[])
-        # for v in val.nodes():
-        #     print(v, ":", val.nodes[v]['H_G'])
-
-
-    # def test_P_to_Heap(self):
-    # #     G = eppstein.calc_H_G(self.GHout, self.Gpred, 't')
-    # #     H_G_dict = {}
-    # #     for p in self.GTree.nodes: # p is of the form STCedge()
-    # #         H_G_dict[p] = G.nodes[p.head]['H_G']
-        
-    # #     P = nx.DiGraph()
-    # #     Proot = eppstein.prepare_and_augmentP(P, H_G_dict, 's')
-
-    # #     print(next(iter(P.adj[Proot])))
-
-    # #     H = nx.DiGraph()
-    # #     Hroot = eppstein.P_to_Heap(H, P, Proot)
-
-
-    # #     print()
-    # #     for n in H.adj:
-    # #         print(n, "->", H.adj[n])
-    # #         print()
-
-    # #     nx.draw(H)
-    # #     plt.draw()
-    # #     plt.show()
-    #     G = eppstein.calc_H_G(self.FHout, self.Fpred, 2)
-    #     H_G_dict = {}
-    #     for p in self.FTree.nodes: # p is of the form STCedge()
-    #         H_G_dict[p] = G.nodes[p.head]['H_G']
-
-    #     P = nx.DiGraph()
-    #     Proot = eppstein.prepare_and_augmentP(P, H_G_dict, 0)
-
-    #     print(next(iter(P.adj[Proot])))
-
-    #     H = nx.DiGraph()
-    #     Hroot = eppstein.P_to_Heap(H, P, Proot)
-
-
-    #     print()
-    #     for n in H.adj:
-    #         print(n, "->", H.adj[n])
-    #         print()
-
-    #     draw_graph(H)
-    #     plt.show()
 
 
     def test_shortest_paths(self):

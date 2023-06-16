@@ -1,3 +1,5 @@
+# Code from eps-net repository by Patrick Emonts 2023
+
 import networkx as nx
 import numpy as np
 from heapq import heappush, heappop

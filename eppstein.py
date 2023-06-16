@@ -507,7 +507,7 @@ def k_shortest_paths(G, src, dst, k):
                 print(f"No more than {len(paths)} paths")
             break
 
-        while True and Hroot.weight == last: # pop all sequences with same weight, for testing purposes, can be set to False for better performance
+        while False and Hroot.weight == last: # pop all sequences with same weight, for testing purposes, can be set to False for better performance
 
             last = Hroot.weight
             p, Hroot = pop_from_H(Hroot, H)
