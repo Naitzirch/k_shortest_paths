@@ -450,7 +450,7 @@ def k_shortest_paths(G, src, dst, k):
     # same as a single-source shortest path tree in G-reverse
     R = G.reverse(copy=True)
 
-    # Essentially calculate min-weight spanning tree but just remember
+    # Essentially calculate shortest path tree but just remember
     # predecessor of node on shortest path to dst and min distance to each node from
     # a given source
     pred, dist = nx.dijkstra_predecessor_and_distance(R, dst) # ( should take O(m + nlogn) )
