@@ -324,6 +324,7 @@ def P_to_Heap(H, P, node):
     H.add_edge(Er, En)
 
     # BFS P
+    nx.set_node_attributes(P, False, 'visited')
     queue = []
     w_t = P.adj[node][n1]['weight'] # total weight
     queue.append((n1, Er, w_t))
@@ -339,6 +340,8 @@ def P_to_Heap(H, P, node):
         p = EHeapElement(new_seq, w_t)
 
         for child in P.adj[l_t]:
+            #if not P.nodes[child]['visited']:
+                #P.nodes[child]['visited'] = True
                 if P.adj[l_t][child]['cross_edge'] == True:
                     # handle child
                     t_w = w_t + P.adj[l_t][child]['weight'] # total weight
