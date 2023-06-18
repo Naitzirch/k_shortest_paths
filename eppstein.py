@@ -447,14 +447,19 @@ def get_all_paths_for_sequence(p, sd, pred, dst):
 # dst:  the destination node
 # k:    the number of paths
 def k_shortest_paths(G, src, dst, k):
+    st_all = time.time()
     # Calculate single-destination shortest path tree; this is the
     # same as a single-source shortest path tree in G-reverse
+    st_rev = time.time()
     R = G.reverse(copy=True)
+    et_rev = time.time()
 
     # Essentially calculate shortest path tree but just remember
     # predecessor of node on shortest path to dst and min distance to each node from
     # a given source
+    st_dijk = time.time()
     pred, dist = nx.dijkstra_predecessor_and_distance(R, dst) # ( should take O(m + nlogn) )
+    et_dijk = time.time()
 
     # Check if src and dst are connected
     if dist.get(src) == None:
@@ -464,25 +469,35 @@ def k_shortest_paths(G, src, dst, k):
     clean_graph(G, dist)
 
     # Calculate sidetrack costs for every edge and add them as attribute to the edge
+    st_calc_sidetrack_cost = time.time()
     calc_sidetrack_cost(G, dist)
+    et_calc_sidetrack_cost = time.time()
 
     # Calculate Hout(v) for every vertex and add the resulting heap as attribute to v
+    st_calc_Hout = time.time()
     for v in G.nodes():
         G.nodes[v]['Hout'] = Hout(G,v)
+    et_calc_Hout = time.time()
 
     # Calculate H_G(v) for every vertex, a balanced heap of the roots of Hout on the path from v to t
     # where every root also points to the rest of its original Hout heap
+    st_calc_HG = time.time()
     G = calc_H_G(G, pred, dst) # For every vertex H_G is added as an attribute
+    et_calc_HG = time.time()
 
     P = nx.DiGraph()
+    st_prepare_and_augmentP = time.time()
     Proot = prepare_and_augmentP(P, G, src) # results in a graph of STCedge elements
+    et_prepare_and_augmentP = time.time()
     # P is now the completed path graph P(G), its root is returned by the function above
 
     # Lastly, P(G) will need to be transformed into a 4-heap H(G), so that the nodes
     # in H(G) represent paths in G. H(G) is constructed by forming a node for each path in
     # P(G) rooted at Proot.
     H = nx.DiGraph()
+    st_P_to_Heap = time.time()
     Hroot = P_to_Heap(H, P, Proot)
+    et_P_to_Heap = time.time()
 
     # Convert STCedge sequence to sequence of nodes describing a path in G
     # Convert cost to complete cost
@@ -522,30 +537,30 @@ def k_shortest_paths(G, src, dst, k):
         if Hroot != None:
             last = Hroot.weight
 
-    et_popping  = time.time()
+    et_popping = time.time()
     et_all = time.time()
 
-    # t_rev = et_rev - st_rev
-    # t_dijk = et_dijk - st_dijk
-    # t_calc_sidetrack_cost = et_calc_sidetrack_cost - st_calc_sidetrack_cost
-    # t_calc_Hout = et_calc_Hout - st_calc_Hout
-    # t_calc_HG = et_calc_HG - st_calc_HG
-    # t_prepare_and_augmentP = et_prepare_and_augmentP - st_prepare_and_augmentP
-    # t_P_to_Heap = et_P_to_Heap - st_P_to_Heap
-    # t_popping = et_popping - st_popping
-    # t_all = et_all - st_all
+    t_rev = et_rev - st_rev
+    t_dijk = et_dijk - st_dijk
+    t_calc_sidetrack_cost = et_calc_sidetrack_cost - st_calc_sidetrack_cost
+    t_calc_Hout = et_calc_Hout - st_calc_Hout
+    t_calc_HG = et_calc_HG - st_calc_HG
+    t_prepare_and_augmentP = et_prepare_and_augmentP - st_prepare_and_augmentP
+    t_P_to_Heap = et_P_to_Heap - st_P_to_Heap
+    t_popping = et_popping - st_popping
+    t_all = et_all - st_all
 
-    # t_l = [('t_rev', t_rev),
-    #        ('t_dijk', t_dijk),
-    #        ('t_calc_sidetrack_cost', t_calc_sidetrack_cost),
-    #        ('t_calc_Hout', t_calc_Hout),
-    #        ('t_calc_HG', t_calc_HG),
-    #        ('t_prepare_and_augmentP', t_prepare_and_augmentP),
-    #        ('t_P_to_Heap', t_P_to_Heap),
-    #        ('t_popping', t_popping)
-    #        ]
-    # for name, t in t_l:
-    #     print(f"{round(t/t_all * 100)}% {name}")
+    t_l = [('t_rev', t_rev),
+           ('t_dijk', t_dijk),
+           ('t_calc_sidetrack_cost', t_calc_sidetrack_cost),
+           ('t_calc_Hout', t_calc_Hout),
+           ('t_calc_HG', t_calc_HG),
+           ('t_prepare_and_augmentP', t_prepare_and_augmentP),
+           ('t_P_to_Heap', t_P_to_Heap),
+           ('t_popping', t_popping)
+           ]
+    for name, t in t_l:
+        print(f"{round(t/t_all * 100)}% {name}")
 
 
     return paths
