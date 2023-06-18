@@ -22,6 +22,7 @@ import heapq
 import networkx as nx
 from epsnet.utils import draw_graph
 import matplotlib.pyplot as plt
+import time
 
 
 class STCedge:
@@ -492,6 +493,7 @@ def k_shortest_paths(G, src, dst, k):
     # To find the k shortest paths, pop at most k times from H and append to list
     # We will convert STCedge sequences to a list of paths after each pop
     last = 0
+    st_popping = time.time()
     while len(paths) < k:
 
         if Hroot is None:
@@ -507,7 +509,7 @@ def k_shortest_paths(G, src, dst, k):
                 print(f"No more than {len(paths)} paths")
             break
 
-        while False and Hroot.weight == last: # pop all sequences with same weight, for testing purposes, can be set to False for better performance
+        while True and Hroot.weight == last: # pop all sequences with same weight, for testing purposes, can be set to False for better performance
 
             last = Hroot.weight
             p, Hroot = pop_from_H(Hroot, H)
@@ -519,6 +521,32 @@ def k_shortest_paths(G, src, dst, k):
                 break
         if Hroot != None:
             last = Hroot.weight
-        
+
+    et_popping  = time.time()
+    et_all = time.time()
+
+    # t_rev = et_rev - st_rev
+    # t_dijk = et_dijk - st_dijk
+    # t_calc_sidetrack_cost = et_calc_sidetrack_cost - st_calc_sidetrack_cost
+    # t_calc_Hout = et_calc_Hout - st_calc_Hout
+    # t_calc_HG = et_calc_HG - st_calc_HG
+    # t_prepare_and_augmentP = et_prepare_and_augmentP - st_prepare_and_augmentP
+    # t_P_to_Heap = et_P_to_Heap - st_P_to_Heap
+    # t_popping = et_popping - st_popping
+    # t_all = et_all - st_all
+
+    # t_l = [('t_rev', t_rev),
+    #        ('t_dijk', t_dijk),
+    #        ('t_calc_sidetrack_cost', t_calc_sidetrack_cost),
+    #        ('t_calc_Hout', t_calc_Hout),
+    #        ('t_calc_HG', t_calc_HG),
+    #        ('t_prepare_and_augmentP', t_prepare_and_augmentP),
+    #        ('t_P_to_Heap', t_P_to_Heap),
+    #        ('t_popping', t_popping)
+    #        ]
+    # for name, t in t_l:
+    #     print(f"{round(t/t_all * 100)}% {name}")
+
+
     return paths
 
