@@ -152,11 +152,31 @@ def make_unique(Hout):
 def parent_ix(ix):
     return (ix - 1) // 2
 
+def children_ix(ix):
+    return (ix * 2 + 1, ix * 2 + 2)
+
 def mark_path_above(h, ix):
     while ix:   # update the rest of the path above inserted element
         p_ix = parent_ix(ix)
         make_unique(h[p_ix])
         ix = p_ix
+
+def mark_path_below(h, p): # marks path below p including p itself
+    make_unique(h[p])
+    for c in children_ix(p):
+        if c < len(h):
+            mark_path_below(h, c)
+
+def mark_path_below_init(h, p_ix, ix):
+    c1, c2 = children_ix(p_ix)
+    other_child = 0
+    if ix == c1:
+        other_child = c2
+    else:
+        other_child = c1
+    
+    if other_child < len(h):
+        mark_path_below(h, other_child) # marks path below other_child including other_child itself
 
 def sift_towards_root(h, ix):
     current = h[ix]
@@ -166,6 +186,8 @@ def sift_towards_root(h, ix):
         if min(parent, current) is parent:
             break
         make_unique(parent)
+        # mark path below the other child of the parent because we're gonna swap them
+        mark_path_below_init(h, p_ix, ix)
         h[p_ix], h[ix], ix = current, parent, p_ix
     mark_path_above(h, ix)
 
@@ -340,8 +362,8 @@ def P_to_Heap(H, P, node):
         p = EHeapElement(new_seq, w_t)
 
         for child in P.adj[l_t]:
-            #if not P.nodes[child]['visited']:
-                #P.nodes[child]['visited'] = True
+            if not P.nodes[child]['visited']:
+                P.nodes[child]['visited'] = True
                 if P.adj[l_t][child]['cross_edge'] == True:
                     # handle child
                     t_w = w_t + P.adj[l_t][child]['weight'] # total weight
